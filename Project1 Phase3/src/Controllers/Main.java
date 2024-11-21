@@ -137,14 +137,6 @@ public class Main extends Application {
             // 2. Call UserManager Tests
             Utilities.UserManagerTest userManagerTester = new Utilities.UserManagerTest();
             userManagerTester.runTests();
-
-            // 3. Call SessionManager Tests
-            Utilities.SessionManagerTest sessionManagerTester = new Utilities.SessionManagerTest();
-            sessionManagerTester.runTests();
-            
-            // 4. Call GroupDAO Tests (Newly Added)
-            Utilities.GroupDAOTest groupDAOTester = new Utilities.GroupDAOTest();
-            groupDAOTester.runTests();
             
             // 5. Call BackupRestoreManager Tests (Newly Added)
             Utilities.BackupRestoreManagerTest backupRestoreManagerTester = new Utilities.BackupRestoreManagerTest();

@@ -27,6 +27,15 @@ public class HelpArticleDAO {
     private Connection connection;
     private EncryptionUtils encryptionUtils;
     private GroupDAO groupDAO;
+    
+    /**
+     * Constructs a HelpArticleDAO instance with a provided database connection.
+     *
+     * @param connection The database connection to use.
+     */
+    public HelpArticleDAO(Connection connection) {
+        this.connection = connection;
+    }
 
     /**
      * Constructs a HelpArticleDAO instance.
@@ -48,7 +57,7 @@ public class HelpArticleDAO {
      * Adds a new help article to the database.
      *
      * @param article The HelpArticle object to add.
-     * @throws SQLException If a database access error occurs.
+     * @throws SQLException If there is an error executing the SQL statement.
      */
     public void addHelpArticle(HelpArticle article) throws SQLException {
         String insertSQL = "INSERT INTO HelpArticles (header, title, shortDescription, keywords, body, referenceLinks) VALUES (?, ?, ?, ?, ?, ?);";
@@ -82,9 +91,9 @@ public class HelpArticleDAO {
     public List<HelpArticle> getAllHelpArticles(User user) throws SQLException {
         List<HelpArticle> articles = new ArrayList<>();
         String query = "SELECT DISTINCT ha.* FROM HelpArticles ha " +
-                       "LEFT JOIN ArticleGroups ag ON ha.id = ag.article_id " +
-                       "LEFT JOIN GroupMembers gm ON ag.group_id = gm.group_id " +
-                       "WHERE gm.username = ? OR ag.group_id IS NULL"; // Articles not associated with any group are accessible to all
+                "LEFT JOIN ArticleGroups ag ON ha.id = ag.article_id " +
+                "LEFT JOIN GroupMembers gm ON ag.group_id = gm.group_id " +
+                "WHERE gm.username = ? OR ag.group_id IS NULL"; // Articles not associated with any group are accessible to all
 
         try (PreparedStatement pstmt = connection.prepareStatement(query)) {
             pstmt.setString(1, user.getUsername());
@@ -97,7 +106,12 @@ public class HelpArticleDAO {
                     article.setShortDescription(rs.getString("shortDescription"));
                     article.setKeywords(Arrays.asList(rs.getString("keywords").split(",")));
                     article.setBody(rs.getString("body"));
-                    article.setReferenceLinks(Arrays.asList(rs.getString("referenceLinks").split(",")));
+                    String referenceLinksStr = rs.getString("referenceLinks");
+                    if (referenceLinksStr != null && !referenceLinksStr.isEmpty()) {
+                        article.setReferenceLinks(Arrays.asList(referenceLinksStr.split(",")));
+                    } else {
+                        article.setReferenceLinks(new ArrayList<>());
+                    }
                     articles.add(article);
                 }
             }
@@ -380,7 +394,12 @@ public class HelpArticleDAO {
                     article.setShortDescription(rs.getString("shortDescription"));
                     article.setKeywords(Arrays.asList(rs.getString("keywords").split(",")));
                     article.setBody(rs.getString("body"));
-                    article.setReferenceLinks(Arrays.asList(rs.getString("referenceLinks").split(",")));
+                    String referenceLinksStr = rs.getString("referenceLinks");
+                    if (referenceLinksStr != null && !referenceLinksStr.isEmpty()) {
+                        article.setReferenceLinks(Arrays.asList(referenceLinksStr.split(",")));
+                    } else {
+                        article.setReferenceLinks(new ArrayList<>());
+                    }
                     articles.add(article);
                 }
             }
@@ -388,8 +407,6 @@ public class HelpArticleDAO {
 
         return articles;
     }
-
-    
 
     /**
      * Provides access to the database connection.

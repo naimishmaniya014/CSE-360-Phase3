@@ -1,216 +1,183 @@
-//package Utilities;
-//
-//import models.Group;
-//import models.HelpArticle;
-//
-//import java.sql.SQLException;
-//import java.util.Arrays;
-//import java.util.List;
-//
-///**
-// * <p> Title: HelpArticleDAOTest Class </p>
-// * 
-// * <p> Description: This class provides a set of tests for the {@link HelpArticleDAO} class.
-// * It validates the CRUD functionalities and association methods by performing operations such as 
-// * adding a help article, retrieving all help articles, retrieving a help article by ID, updating 
-// * a help article, deleting a help article, deleting all help articles, associating articles with 
-// * groups, dissociating articles from groups, retrieving articles by group ID, and retrieving 
-// * groups by article ID. The test outputs indicate the success or failure of each test case. </p>
-// * 
-// * @author Naimish Maniya
-// * 
-// * <p> @version 1.00  2024-10-29  Initial version. </p>
-// */
-//public class HelpArticleDAOTest {
-//
-//    /**
-//     * The main method to execute the HelpArticleDAO tests.
-//     *
-//     * @param args Command-line arguments (not used).
-//     */
-//    public static void main(String[] args) {
-//        HelpArticleDAOTest tester = new HelpArticleDAOTest();
-//        tester.runTests();
-//    }
-//
-//    /**
-//     * Executes all test cases for the HelpArticleDAO.
-//     */
-//    public void runTests() {
-//        System.out.println("Running HelpArticleDAO tests...");
-//
-//        try {
-//            setup();
-//            testAddHelpArticle();
-//            testGetHelpArticleById();
-//            testUpdateHelpArticle();
-//            testDeleteHelpArticle();
-//            testDeleteAllHelpArticles();
-//        } catch (SQLException e) {
-//            System.out.println("Database Error during tests: " + e.getMessage());
-//        }
-//
-//        System.out.println("HelpArticleDAO tests completed.");
-//    }
-//
-//    /**
-//     * Sets up the database for testing by resetting it.
-//     *
-//     * @throws SQLException If there is an error accessing the database.
-//     */
-//    private void setup() throws SQLException {
-//        DatabaseManager dbManager = DatabaseManager.getInstance();
-//        dbManager.resetDatabase();
-//        System.out.println("Database reset for HelpArticleDAO tests.");
-//    }
-//
-//    /**
-//     * Tests adding a new help article.
-//     *
-//     * @throws SQLException If a database access error occurs.
-//     */
-//    public void testAddHelpArticle() throws SQLException {
-//        System.out.println("\nTest: Add HelpArticle");
-//        HelpArticleDAO helpArticleDAO = new HelpArticleDAO();
-//        HelpArticle article = new HelpArticle(
-//                0, "Header1",
-//                "Java Basics",
-//                "Introduction to Java",
-//                Arrays.asList("java", "programming"),
-//                "Java is a high-level programming language.",
-//                Arrays.asList("https://java.com")
-//        );
-//        helpArticleDAO.addHelpArticle(article, false);
-//
-//        if (article.getId() > 0) {
-//            System.out.println("Passed: HelpArticle ID set correctly after insertion.");
-//        } else {
-//            System.out.println("Failed: HelpArticle ID not set.");
-//        }
-//
-//        HelpArticle retrieved = helpArticleDAO.getHelpArticleById(article.getId(), false);
-//        if (retrieved != null && retrieved.getTitle().equals("Java Basics")) {
-//            System.out.println("Passed: HelpArticle retrieved successfully by ID.");
-//        } else {
-//            System.out.println("Failed: HelpArticle retrieval by ID unsuccessful.");
-//        }
-//    }
-//
-//    /**
-//     * Tests retrieving a help article by its ID.
-//     *
-//     * @throws SQLException If a database access error occurs.
-//     */
-//    public void testGetHelpArticleById() throws SQLException {
-//        System.out.println("\nTest: Get HelpArticle By ID");
-//        HelpArticleDAO helpArticleDAO = new HelpArticleDAO();
-//        HelpArticle article = new HelpArticle(
-//                0, "Header3",
-//                "C++ Basics",
-//                "Introduction to C++",
-//                Arrays.asList("c++", "programming"),
-//                "C++ is a powerful system programming language.",
-//                Arrays.asList("https://cplusplus.com")
-//        );
-//        helpArticleDAO.addHelpArticle(article, false);
-//
-//        HelpArticle retrieved = helpArticleDAO.getHelpArticleById(article.getId(), false);
-//        if (retrieved != null && retrieved.getTitle().equals("C++ Basics")) {
-//            System.out.println("Passed: Successfully retrieved HelpArticle by ID.");
-//        } else {
-//            System.out.println("Failed: Could not retrieve HelpArticle by ID.");
-//        }
-//    }
-//
-//    /**
-//     * Tests updating an existing help article.
-//     *
-//     * @throws SQLException If a database access error occurs.
-//     */
-//    public void testUpdateHelpArticle() throws SQLException {
-//        System.out.println("\nTest: Update HelpArticle");
-//        HelpArticleDAO helpArticleDAO = new HelpArticleDAO();
-//        HelpArticle article = new HelpArticle(
-//                0, "Header4",
-//                "Java Basics",
-//                "Introduction to Java",
-//                Arrays.asList("java", "programming"),
-//                "Java is a high-level programming language.",
-//                Arrays.asList("https://java.com")
-//        );
-//        helpArticleDAO.addHelpArticle(article, false);
-//
-//        article.setTitle("Advanced Java");
-//        helpArticleDAO.updateHelpArticle(article, false);
-//
-//        HelpArticle updated = helpArticleDAO.getHelpArticleById(article.getId(), false);
-//        if (updated != null && updated.getTitle().equals("Advanced Java")) {
-//            System.out.println("Passed: HelpArticle updated successfully.");
-//        } else {
-//            System.out.println("Failed: HelpArticle update unsuccessful.");
-//        }
-//    }
-//
-//    /**
-//     * Tests deleting a specific help article.
-//     *
-//     * @throws SQLException If a database access error occurs.
-//     */
-//    public void testDeleteHelpArticle() throws SQLException {
-//        System.out.println("\nTest: Delete HelpArticle");
-//        HelpArticleDAO helpArticleDAO = new HelpArticleDAO();
-//        HelpArticle article = new HelpArticle(
-//                0, "Header5",
-//                "Ruby Basics",
-//                "Introduction to Ruby",
-//                Arrays.asList("ruby", "programming"),
-//                "Ruby is a dynamic, open source programming language.",
-//                Arrays.asList("https://ruby-lang.org")
-//        );
-//        helpArticleDAO.addHelpArticle(article, false);
-//
-//        helpArticleDAO.deleteHelpArticle(article.getId());
-//
-//        HelpArticle deleted = helpArticleDAO.getHelpArticleById(article.getId(), false);
-//        if (deleted == null) {
-//            System.out.println("Passed: HelpArticle deleted successfully.");
-//        } else {
-//            System.out.println("Failed: HelpArticle deletion unsuccessful.");
-//        }
-//    }
-//
-//    /**
-//     * Tests deleting all help articles.
-//     *
-//     * @throws SQLException If a database access error occurs.
-//     */
-//    public void testDeleteAllHelpArticles() throws SQLException {
-//        System.out.println("\nTest: Delete All HelpArticles");
-//        HelpArticleDAO helpArticleDAO = new HelpArticleDAO();
-//        helpArticleDAO.addHelpArticle(new HelpArticle(
-//                0, "Header6",
-//                "Go Basics",
-//                "Introduction to Go",
-//                Arrays.asList("go", "programming"),
-//                "Go is an open source programming language designed for simplicity.",
-//                Arrays.asList("https://golang.org")
-//        ), false);
-//        helpArticleDAO.addHelpArticle(new HelpArticle(
-//                0, "Header7",
-//                "Swift Basics",
-//                "Introduction to Swift",
-//                Arrays.asList("swift", "programming"),
-//                "Swift is a powerful and intuitive programming language for iOS.",
-//                Arrays.asList("https://swift.org")
-//        ), false);
-//
-//        helpArticleDAO.deleteAllHelpArticles();
-//
-//        List<HelpArticle> articles = helpArticleDAO.getAllHelpArticles();
-//        if (articles.isEmpty()) {
-//            System.out.println("Passed: All HelpArticles deleted successfully.");
-//        } else {
-//            System.out.println("Failed: Not all HelpArticles were deleted.");
-//        }
-//    }
-//}
+// src/test/java/Utilities/HelpArticleDAOTest.java
+package Utilities;
+
+import models.HelpArticle;
+import models.Role;
+import models.User;
+import org.junit.jupiter.api.*;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+class HelpArticleDAOTest {
+    private static TestDatabaseManager testDbManager;
+    private static Connection connection;
+    private HelpArticleDAO helpArticleDAO;
+
+    @BeforeAll
+    static void setupAll() throws SQLException {
+        testDbManager = TestDatabaseManager.getInstance();
+        connection = testDbManager.getConnection();
+    }
+
+    @BeforeEach
+    void setup() throws SQLException {
+        testDbManager.resetDatabase();
+        helpArticleDAO = new HelpArticleDAO(connection);
+        // Insert a test user
+        UserDAO userDAO = new UserDAO();
+        User testUser = new User("testuser", "password");
+        testUser.setRoles(Arrays.asList(Role.INSTRUCTOR));
+        userDAO.addStudent(testUser);
+        // Insert a test group
+        GroupDAO groupDAO = new GroupDAO();
+        groupDAO.createGroup("TestGroup", false);
+    }
+
+    @Test
+    void testAddHelpArticle() throws SQLException {
+        HelpArticle article = new HelpArticle();
+        article.setHeader("Test Header");
+        article.setTitle("Test Title");
+        article.setShortDescription("Test Short Description");
+        article.setKeywords(Arrays.asList("test", "article"));
+        article.setBody("This is the body of the test article.");
+        article.setReferenceLinks(Arrays.asList("http://example.com"));
+
+        helpArticleDAO.addHelpArticle(article);
+        assertTrue(article.getId() > 0, "Article ID should be set after insertion.");
+
+        // Retrieve the article
+        User user = new User("testuser", "password");
+        user.setRoles(Arrays.asList(Role.INSTRUCTOR));
+        HelpArticle retrieved = helpArticleDAO.getHelpArticleById(article.getId(), user);
+        assertNotNull(retrieved, "Retrieved article should not be null.");
+        assertEquals("Test Title", retrieved.getTitle(), "Titles should match.");
+    }
+
+    @Test
+    void testGetAllHelpArticles() throws SQLException {
+        // Insert multiple articles
+        HelpArticle article1 = new HelpArticle();
+        article1.setHeader("Header1");
+        article1.setTitle("Title1");
+        article1.setShortDescription("Short Description1");
+        article1.setKeywords(Arrays.asList("java", "junit"));
+        article1.setBody("Body1");
+        article1.setReferenceLinks(Arrays.asList("http://link1.com"));
+        helpArticleDAO.addHelpArticle(article1);
+
+        HelpArticle article2 = new HelpArticle();
+        article2.setHeader("Header2");
+        article2.setTitle("Title2");
+        article2.setShortDescription("Short Description2");
+        article2.setKeywords(Arrays.asList("testing", "dao"));
+        article2.setBody("Body2");
+        article2.setReferenceLinks(Arrays.asList("http://link2.com"));
+        helpArticleDAO.addHelpArticle(article2);
+
+        User user = new User("testuser", "password");
+        user.setRoles(Arrays.asList(Role.INSTRUCTOR));
+
+        List<HelpArticle> articles = helpArticleDAO.getAllHelpArticles(user);
+        assertEquals(2, articles.size(), "There should be two articles.");
+    }
+
+    @Test
+    void testUpdateHelpArticle() throws SQLException {
+        HelpArticle article = new HelpArticle();
+        article.setHeader("Original Header");
+        article.setTitle("Original Title");
+        article.setShortDescription("Original Short Description");
+        article.setKeywords(Arrays.asList("original", "test"));
+        article.setBody("Original Body");
+        article.setReferenceLinks(Arrays.asList("http://original.com"));
+        helpArticleDAO.addHelpArticle(article);
+
+        // Update the article
+        article.setHeader("Updated Header");
+        article.setTitle("Updated Title");
+        article.setShortDescription("Updated Short Description");
+        article.setKeywords(Arrays.asList("updated", "test"));
+        article.setBody("Updated Body");
+        article.setReferenceLinks(Arrays.asList("http://updated.com"));
+        helpArticleDAO.updateHelpArticle(article);
+
+        // Retrieve the updated article
+        User user = new User("testuser", "password");
+        user.setRoles(Arrays.asList(Role.INSTRUCTOR));
+        HelpArticle updated = helpArticleDAO.getHelpArticleById(article.getId(), user);
+        assertNotNull(updated, "Updated article should not be null.");
+        assertEquals("Updated Title", updated.getTitle(), "Title should be updated.");
+        assertEquals("Updated Body", updated.getBody(), "Body should be updated.");
+    }
+
+    @Test
+    void testDeleteHelpArticle() throws SQLException {
+        HelpArticle article = new HelpArticle();
+        article.setHeader("To Be Deleted");
+        article.setTitle("Delete Me");
+        article.setShortDescription("This article will be deleted.");
+        article.setKeywords(Arrays.asList("delete", "test"));
+        article.setBody("Delete this article.");
+        article.setReferenceLinks(Arrays.asList("http://delete.com"));
+        helpArticleDAO.addHelpArticle(article);
+
+        // Verify insertion
+        User user = new User("testuser", "password");
+        user.setRoles(Arrays.asList(Role.INSTRUCTOR));
+        HelpArticle retrieved = helpArticleDAO.getHelpArticleById(article.getId(), user);
+        assertNotNull(retrieved, "Article should exist before deletion.");
+
+        // Delete the article
+        helpArticleDAO.deleteHelpArticle(article.getId());
+
+        // Verify deletion
+        HelpArticle deleted = helpArticleDAO.getHelpArticleById(article.getId(), user);
+        assertNull(deleted, "Article should be null after deletion.");
+    }
+
+    @Test
+    void testSearchHelpArticles() throws SQLException {
+        // Insert articles
+        HelpArticle article1 = new HelpArticle();
+        article1.setHeader("Java Basics");
+        article1.setTitle("Introduction to Java");
+        article1.setShortDescription("Basics of Java programming.");
+        article1.setKeywords(Arrays.asList("java", "programming"));
+        article1.setBody("Java is a high-level programming language.");
+        article1.setReferenceLinks(Arrays.asList("http://java.com"));
+        helpArticleDAO.addHelpArticle(article1);
+
+        HelpArticle article2 = new HelpArticle();
+        article2.setHeader("JUnit Testing");
+        article2.setTitle("Writing Tests with JUnit");
+        article2.setShortDescription("Guide to writing unit tests using JUnit.");
+        article2.setKeywords(Arrays.asList("junit", "testing"));
+        article2.setBody("JUnit is a popular testing framework for Java.");
+        article2.setReferenceLinks(Arrays.asList("http://junit.org"));
+        helpArticleDAO.addHelpArticle(article2);
+
+        User user = new User("testuser", "password");
+        user.setRoles(Arrays.asList(Role.INSTRUCTOR));
+
+        // Search for 'Java'
+        List<HelpArticle> searchResults = helpArticleDAO.searchHelpArticles(user, "Java", "all");
+        assertEquals(1, searchResults.size(), "There should be one search result for 'Java'.");
+        assertEquals("Introduction to Java", searchResults.get(0).getTitle(), "Title should match 'Introduction to Java'.");
+
+        // Search for 'testing'
+        searchResults = helpArticleDAO.searchHelpArticles(user, "testing", "all");
+        assertEquals(1, searchResults.size(), "There should be one search result for 'testing'.");
+        assertEquals("Writing Tests with JUnit", searchResults.get(0).getTitle(), "Title should match 'Writing Tests with JUnit'.");
+
+        // Search for 'Guide'
+        searchResults = helpArticleDAO.searchHelpArticles(user, "Guide", "all");
+        assertEquals(1, searchResults.size(), "There should be one search result for 'Guide'.");
+        assertEquals("Writing Tests with JUnit", searchResults.get(0).getTitle(), "Title should match 'Writing Tests with JUnit'.");
+    }
+}

@@ -1,190 +1,107 @@
+// src/test/java/Utilities/GroupDAOTest.java
 package Utilities;
 
 import models.Group;
+import models.Role;
+import models.User;
 
+import org.junit.jupiter.api.*;
+
+import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.List;
 
-/**
- * <p> Title: GroupDAOTest Class </p>
- * 
- * <p> Description: This class provides a set of tests for the {@link GroupDAO} class.
- * It validates the CRUD functionalities by performing operations such as adding a group,
- * retrieving all groups, retrieving a group by name, updating a group, deleting a group,
- * and deleting all groups. The test outputs indicate the success or failure of each test case.
- * </p>
- * 
- * @author Naimish Maniya
- * 
- * <p> @version 1.00  2024-10-29  Initial version. </p>
- */
-public class GroupDAOTest {
+import static org.junit.jupiter.api.Assertions.*;
 
-    /**
-     * The main method to execute the GroupDAO tests.
-     *
-     * @param args Command-line arguments (not used).
-     */
-    public static void main(String[] args) {
-        GroupDAOTest tester = new GroupDAOTest();
-        tester.runTests();
+class GroupDAOTest {
+    private static TestDatabaseManager testDbManager;
+    private static Connection connection;
+    private GroupDAO groupDAO;
+
+    @BeforeAll
+    static void setupAll() throws SQLException {
+        testDbManager = TestDatabaseManager.getInstance();
+        connection = testDbManager.getConnection();
     }
 
-    /**
-     * Executes all test cases for the GroupDAO.
-     */
-    public void runTests() {
-        System.out.println("Running GroupDAO tests...");
-
-        try {
-            setup();
-            testAddGroup();
-            testGetAllGroups();
-            testGetGroupByName();
-            testUpdateGroup();
-            testDeleteGroup();
-            testDeleteAllGroups();
-        } catch (SQLException e) {
-            System.out.println("Database Error during tests: " + e.getMessage());
-        }
-
-        System.out.println("GroupDAO tests completed.");
+    @BeforeEach
+    void setup() throws SQLException {
+        testDbManager.resetDatabase();
+        groupDAO = new GroupDAO();
     }
 
-    /**
-     * Sets up the database for testing by resetting it.
-     *
-     * @throws SQLException If there is an error accessing the database.
-     */
-    private void setup() throws SQLException {
-        DatabaseManager dbManager = DatabaseManager.getInstance();
-        dbManager.resetDatabase();
-        System.out.println("Database reset for GroupDAO tests.");
-    }
-
-    /**
-     * Tests adding a new group.
-     *
-     * @throws SQLException If a database access error occurs.
-     */
-    public void testAddGroup() throws SQLException {
-        System.out.println("\nTest: Add Group");
-        GroupDAO groupDAO = new GroupDAO();
-        Group group = new Group("cs");
-        groupDAO.addGroup(group);
-
-        if (group.getId() > 0) {
-            System.out.println("Passed: Group ID set correctly after insertion.");
-        } else {
-            System.out.println("Failed: Group ID not set.");
-        }
-
-        Group retrieved = groupDAO.getGroupByName("cs");
-        if (retrieved != null && retrieved.getName().equals("cs")) {
-            System.out.println("Passed: Group retrieved successfully by name.");
-        } else {
-            System.out.println("Failed: Group retrieval by name unsuccessful.");
-        }
-    }
-
-    /**
-     * Tests retrieving all groups.
-     *
-     * @throws SQLException If a database access error occurs.
-     */
-    public void testGetAllGroups() throws SQLException {
-        System.out.println("\nTest: Get All Groups");
-        GroupDAO groupDAO = new GroupDAO();
-        groupDAO.addGroup(new Group("cs"));
-        groupDAO.addGroup(new Group("math"));
-
+    @Test
+    void testCreateAndRetrieveGroup() throws SQLException {
+        groupDAO.createGroup("Developers", false);
         List<Group> groups = groupDAO.getAllGroups();
-        if (groups.size() == 2) {
-            System.out.println("Passed: Retrieved correct number of groups.");
-        } else {
-            System.out.println("Failed: Incorrect number of groups retrieved.");
-        }
+        assertEquals(1, groups.size(), "There should be one group.");
+        assertEquals("Developers", groups.get(0).getName(), "Group name should match.");
+        assertFalse(groups.get(0).isSpecialAccessGroup(), "Group should not be a special access group.");
     }
 
-    /**
-     * Tests retrieving a group by its name.
-     *
-     * @throws SQLException If a database access error occurs.
-     */
-    public void testGetGroupByName() throws SQLException {
-        System.out.println("\nTest: Get Group By Name");
-        GroupDAO groupDAO = new GroupDAO();
-        groupDAO.addGroup(new Group("biology"));
-
-        Group group = groupDAO.getGroupByName("biology");
-        if (group != null && group.getName().equals("biology")) {
-            System.out.println("Passed: Successfully retrieved group by name.");
-        } else {
-            System.out.println("Failed: Could not retrieve group by name.");
-        }
+    @Test
+    void testCreateSpecialAccessGroup() throws SQLException {
+        groupDAO.createGroup("Admins", true);
+        List<Group> groups = groupDAO.getAllGroups();
+        assertEquals(1, groups.size(), "There should be one group.");
+        assertEquals("Admins", groups.get(0).getName(), "Group name should match.");
+        assertTrue(groups.get(0).isSpecialAccessGroup(), "Group should be a special access group.");
     }
 
-    /**
-     * Tests updating an existing group.
-     *
-     * @throws SQLException If a database access error occurs.
-     */
-    public void testUpdateGroup() throws SQLException {
-        System.out.println("\nTest: Update Group");
-        GroupDAO groupDAO = new GroupDAO();
-        Group group = new Group("chemistry");
-        groupDAO.addGroup(group);
+    @Test
+    void testDeleteGroup() throws SQLException {
+        groupDAO.createGroup("TestGroup", false);
+        List<Group> groups = groupDAO.getAllGroups();
+        assertEquals(1, groups.size(), "There should be one group before deletion.");
 
-        group.setName("organic chemistry");
-        groupDAO.updateGroup(group);
-
-        Group updatedGroup = groupDAO.getGroupByName("organic chemistry");
-        if (updatedGroup != null && updatedGroup.getName().equals("organic chemistry")) {
-            System.out.println("Passed: Group updated successfully.");
-        } else {
-            System.out.println("Failed: Group update unsuccessful.");
-        }
-    }
-
-    /**
-     * Tests deleting a specific group.
-     *
-     * @throws SQLException If a database access error occurs.
-     */
-    public void testDeleteGroup() throws SQLException {
-        System.out.println("\nTest: Delete Group");
-        GroupDAO groupDAO = new GroupDAO();
-        Group group = new Group("physics");
-        groupDAO.addGroup(group);
-
+        Group group = groups.get(0);
         groupDAO.deleteGroup(group.getId());
 
-        Group deletedGroup = groupDAO.getGroupByName("physics");
-        if (deletedGroup == null) {
-            System.out.println("Passed: Group deleted successfully.");
-        } else {
-            System.out.println("Failed: Group deletion unsuccessful.");
-        }
+        groups = groupDAO.getAllGroups();
+        assertTrue(groups.isEmpty(), "There should be no groups after deletion.");
     }
 
-    /**
-     * Tests deleting all groups.
-     *
-     * @throws SQLException If a database access error occurs.
-     */
-    public void testDeleteAllGroups() throws SQLException {
-        System.out.println("\nTest: Delete All Groups");
-        GroupDAO groupDAO = new GroupDAO();
-        groupDAO.addGroup(new Group("history"));
-        groupDAO.addGroup(new Group("geography"));
-
-        groupDAO.deleteAllGroups();
-
+    @Test
+    void testUpdateGroup() throws SQLException {
+        groupDAO.createGroup("OldGroupName", false);
         List<Group> groups = groupDAO.getAllGroups();
-        if (groups.isEmpty()) {
-            System.out.println("Passed: All groups deleted successfully.");
-        } else {
-            System.out.println("Failed: Not all groups were deleted.");
-        }
+        Group group = groups.get(0);
+
+        groupDAO.updateGroup(group.getId(), "NewGroupName", true);
+        List<Group> updatedGroups = groupDAO.getAllGroups();
+        assertEquals(1, updatedGroups.size(), "There should be one group after update.");
+        assertEquals("NewGroupName", updatedGroups.get(0).getName(), "Group name should be updated.");
+        assertTrue(updatedGroups.get(0).isSpecialAccessGroup(), "Group should be updated to special access group.");
+    }
+
+    @Test
+    void testAddAndRemoveStudentFromGroup() throws SQLException {
+        // Create group and user
+        groupDAO.createGroup("TestGroup", false);
+        List<Group> groups = groupDAO.getAllGroups();
+        Group group = groups.get(0);
+
+        UserDAO userDAO = new UserDAO();
+        User student = new User("student1", "pass1");
+        student.setRoles(Arrays.asList(Role.STUDENT));
+        userDAO.addStudent(student);
+
+        // Add student to group
+        groupDAO.addStudentToGroup(group.getId(), "student1");
+        List<String> members = groupDAO.getGroupMembers(group.getId());
+        assertEquals(1, members.size(), "There should be one member in the group.");
+        assertEquals("student1", members.get(0), "Member username should match.");
+
+        // Remove student from group
+        groupDAO.removeStudentFromGroup(group.getId(), "student1");
+        members = groupDAO.getGroupMembers(group.getId());
+        assertTrue(members.isEmpty(), "There should be no members in the group after removal.");
+    }
+
+    @Test
+    void testDuplicateGroupName() throws SQLException {
+        groupDAO.createGroup("UniqueGroup", false);
+        assertThrows(SQLException.class, () -> groupDAO.createGroup("UniqueGroup", true), "Creating a group with duplicate name should throw SQLException.");
     }
 }

@@ -1,95 +1,115 @@
+// src/test/java/Utilities/SessionManagerTest.java
 package Utilities;
 
-import models.User;
 import models.Role;
+import models.User;
+import org.junit.jupiter.api.*;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+import java.util.Arrays;
 
 /**
  * <p> Title: SessionManagerTest Class </p>
  * 
- * <p> Description: This class provides a set of tests for the {@link SessionManager} class.
+ * <p> Description: This class provides a set of JUnit 5 tests for the {@link SessionManager} class.
  * It validates session management functionalities by performing operations such as setting the current user,
- * setting the current role, and clearing the session. The test outputs indicate the success or failure
- * of each test case. </p>
+ * setting the current role, and clearing the session. The tests use assertions to verify the correctness
+ * of each operation, ensuring the robustness and reliability of the {@link SessionManager} class. </p>
  * 
- * @author Naimish Maniya
- * 
- * <p> @version 1.00  2024-10-29  Initial version. </p>
+ * @version 1.00  2024-11-20  Initial version.
  */
-public class SessionManagerTest {
-
-    /**
-     * The main method to execute the SessionManager tests.
-     *
-     * @param args Command-line arguments (not used).
-     */
-    public static void main(String[] args) {
-        SessionManagerTest tester = new SessionManagerTest();
-        tester.runTests();
+class SessionManagerTest {
+    
+    private static SessionManager sessionManager;
+    
+    @BeforeAll
+    static void setupAll() {
+        // Initialize the SessionManager instance
+        sessionManager = SessionManager.getInstance();
     }
-
-    /**
-     * Executes all test cases for the SessionManager.
-     */
-    public void runTests() {
-        System.out.println("Running SessionManager tests...");
-
-        testSetCurrentUser();
-        testClearSession();
-        testSetCurrentRole();
-
-        System.out.println("Tests completed.");
-    }
-
-    /**
-     * Tests setting the current user in the session.
-     */
-    public void testSetCurrentUser() {
-        System.out.println("\nTest: Set Current User");
-        SessionManager sessionManager = SessionManager.getInstance();
-        User user = new User("testUser", "password123");
-
-        sessionManager.setCurrentUser(user);
-
-        if (user.equals(sessionManager.getCurrentUser())) {
-            System.out.println("Passed: Current user is set correctly.");
-        } else {
-            System.out.println("Failed: Current user is not set correctly.");
-        }
-    }
-
-    /**
-     * Tests clearing the current session.
-     */
-    public void testClearSession() {
-        System.out.println("\nTest: Clear Session");
-        SessionManager sessionManager = SessionManager.getInstance();
-        User user = new User("testUser", "password123");
-
-        sessionManager.setCurrentUser(user);
+    
+    @BeforeEach
+    void setup() {
+        // Clear session before each test to ensure isolation
         sessionManager.clearSession();
-
-        if (sessionManager.getCurrentUser() == null) {
-            System.out.println("Passed: Session cleared successfully.");
-        } else {
-            System.out.println("Failed: Session not cleared.");
-        }
     }
-
-    /**
-     * Tests setting the current role in the session.
-     */
-    public void testSetCurrentRole() {
-        System.out.println("\nTest: Set Current Role");
-        SessionManager sessionManager = SessionManager.getInstance();
-        User user = new User("testUser", "password123");
-
+    
+    @Test
+    @DisplayName("Test Setting and Getting Current User")
+    void testSetAndGetCurrentUser() {
+        User user = new User("sessionUser", "password123");
+        user.setRoles(Arrays.asList(Role.ADMIN));
+        
+        sessionManager.setCurrentUser(user);
+        
+        User retrievedUser = sessionManager.getCurrentUser();
+        assertNotNull(retrievedUser, "Retrieved user should not be null.");
+        assertEquals("sessionUser", retrievedUser.getUsername(), "Usernames should match.");
+        assertEquals("password123", retrievedUser.getPassword(), "Passwords should match.");
+        assertTrue(retrievedUser.getRoles().contains(Role.ADMIN), "User should have ADMIN role.");
+    }
+    
+    @Test
+    @DisplayName("Test Clearing Session")
+    void testClearSession() {
+        User user = new User("clearUser", "password123");
+        user.setRoles(Arrays.asList(Role.STUDENT));
+        
+        sessionManager.setCurrentUser(user);
+        sessionManager.setCurrentRole(Role.STUDENT);
+        
+        sessionManager.clearSession();
+        
+        assertNull(sessionManager.getCurrentUser(), "Current user should be null after clearing session.");
+        assertNull(sessionManager.getCurrentRole(), "Current role should be null after clearing session.");
+    }
+    
+    @Test
+    @DisplayName("Test Setting and Getting Current Role")
+    void testSetAndGetCurrentRole() {
+        User user = new User("roleUser", "password123");
+        user.setRoles(Arrays.asList(Role.INSTRUCTOR));
+        
+        sessionManager.setCurrentUser(user);
+        sessionManager.setCurrentRole(Role.INSTRUCTOR);
+        
+        Role retrievedRole = sessionManager.getCurrentRole();
+        assertNotNull(retrievedRole, "Retrieved role should not be null.");
+        assertEquals(Role.INSTRUCTOR, retrievedRole, "Roles should match.");
+    }
+    
+    @Test
+    @DisplayName("Test Session Persistence Across Operations")
+    void testSessionPersistence() {
+        User user = new User("persistentUser", "password123");
+        user.setRoles(Arrays.asList(Role.ADMIN, Role.INSTRUCTOR));
+        
         sessionManager.setCurrentUser(user);
         sessionManager.setCurrentRole(Role.ADMIN);
-
-        if (Role.ADMIN.equals(sessionManager.getCurrentRole())) {
-            System.out.println("Passed: Current role is set correctly.");
-        } else {
-            System.out.println("Failed: Current role is not set correctly.");
-        }
+        
+        // Simulate some operations
+        User retrievedUser = sessionManager.getCurrentUser();
+        Role retrievedRole = sessionManager.getCurrentRole();
+        
+        assertNotNull(retrievedUser, "Retrieved user should not be null.");
+        assertEquals("persistentUser", retrievedUser.getUsername(), "Usernames should match.");
+        assertTrue(retrievedUser.getRoles().contains(Role.ADMIN), "User should have ADMIN role.");
+        
+        assertNotNull(retrievedRole, "Retrieved role should not be null.");
+        assertEquals(Role.ADMIN, retrievedRole, "Roles should match.");
+    }
+    
+    @Test
+    @DisplayName("Test Setting Role Without Setting User")
+    void testSetRoleWithoutUser() {
+        sessionManager.setCurrentRole(Role.STUDENT);
+        
+        Role retrievedRole = sessionManager.getCurrentRole();
+        assertNotNull(retrievedRole, "Retrieved role should not be null even if user is not set.");
+        assertEquals(Role.STUDENT, retrievedRole, "Roles should match.");
+        
+        // Depending on implementation, you might want to assert user is still null
+        assertNull(sessionManager.getCurrentUser(), "Current user should still be null.");
     }
 }
