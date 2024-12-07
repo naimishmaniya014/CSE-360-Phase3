@@ -130,38 +130,13 @@ public class Main extends Application {
         System.out.println("Running all tests...");
 
         try {
-            // 1. Call Role Tests
-            models.RoleTest roleTester = new models.RoleTest();
-            roleTester.runTests();
-
-            // 2. Call UserManager Tests
+        	//Call UserManager Tests
             Utilities.UserManagerTest userManagerTester = new Utilities.UserManagerTest();
             userManagerTester.runTests();
             
-            // 5. Call BackupRestoreManager Tests (Newly Added)
+            //Call BackupRestoreManager Tests (Newly Added)
             Utilities.BackupRestoreManagerTest backupRestoreManagerTester = new Utilities.BackupRestoreManagerTest();
             backupRestoreManagerTester.runTests();
-
-            // 6. Call User Tests
-            models.UserTest userTester = new models.UserTest();
-            userTester.runTests();
-
-            // 7. Call InvitationCode Tests
-            models.InvitationCodeTest invitationCodeTester = new models.InvitationCodeTest();
-            invitationCodeTester.runTests();
-            
-//            // 8. Call HelpArticleDAOTest Tests (Newly Added)
-//            Utilities.HelpArticleDAOTest helpArticleDAOTester = new Utilities.HelpArticleDAOTest();
-//            helpArticleDAOTester.runTests();
-
-
-            // 10. Call HelpArticle Tests (Newly Added)
-//            models.HelpArticleTest helpArticleTester = new models.HelpArticleTest();
-//            helpArticleTester.runTests();
-
-//            // 11. Call GroupWithArticles Tests (Newly Added)
-//            models.GroupWithArticlesTest groupWithArticlesTester = new models.GroupWithArticlesTest();
-//            groupWithArticlesTester.runTests();
 
         } catch (Exception e) {
             System.out.println("An error occurred during testing: " + e.getMessage());

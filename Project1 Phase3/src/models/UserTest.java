@@ -1,6 +1,10 @@
 package models;
 
-import java.util.Arrays;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
+
+import java.time.LocalDateTime;
 
 /**
  * <p> Title: UserTest Class </p>
@@ -12,123 +16,119 @@ import java.util.Arrays;
  * behaves as expected.
  * </p>
  * 
- * <p> Usage: Execute the main method of this class to run all tests related to the User class.
- * Each test method provides console output detailing the outcome of the test, making it easy
- * to identify any issues or confirm successful operations. </p>
- * 
- * @author Naimish Maniya
- * 
- * <p> @version 1.00  2024-10-29  Initial version. </p>
+ * @version 1.00  2024-10-29  Initial version.
  */
 public class UserTest {
-
-    /**
-     * The main method to execute the User tests.
-     *
-     * @param args Command-line arguments (not used).
-     */
-    public static void main(String[] args) {
-        UserTest tester = new UserTest();
-        tester.runTests();
-    }
-
-    /**
-     * Executes all test cases for the User class.
-     * This method sequentially runs individual tests for the User constructor,
-     * password updates, role addition/removal, and OTP expiration settings.
-     */
-    public void runTests() {
-        System.out.println("Running User class tests...");
-
-        testUserConstructor();
-        testSetPassword();
-        testAddRole();
-        testRemoveRole();
-        testOtpExpiration();
-
-        System.out.println("Tests completed.");
-    }
 
     /**
      * Tests the constructor of the User class.
      * It verifies that the username and password are correctly initialized.
      */
+    @Test
+    @DisplayName("Test User Constructor")
     public void testUserConstructor() {
-        System.out.println("\nTest: User Constructor");
         User user = new User("testUser", "password123");
 
-        boolean usernameTest = "testUser".equals(user.getUsername());
-        boolean passwordTest = "password123".equals(user.getPassword());
-
-        if (usernameTest && passwordTest) {
-            System.out.println("Passed: User constructor works correctly.");
-        } else {
-            System.out.println("Failed: User constructor failed.");
-        }
+        assertEquals("testUser", user.getUsername(), "Constructor should initialize username correctly.");
+        assertEquals("password123", user.getPassword(), "Constructor should initialize password correctly.");
+        assertNotNull(user.getRoles(), "Roles list should be initialized.");
+        assertTrue(user.getRoles().isEmpty(), "Roles list should be empty upon initialization.");
+        assertNull(user.getOtpExpiration(), "OTP expiration should be null upon initialization.");
     }
 
     /**
      * Tests the setPassword method of the User class.
      * It verifies that the user's password is correctly updated.
      */
+    @Test
+    @DisplayName("Test setPassword Method")
     public void testSetPassword() {
-        System.out.println("\nTest: Set Password");
         User user = new User("testUser", "password123");
         user.setPassword("newPassword123");
 
-        if ("newPassword123".equals(user.getPassword())) {
-            System.out.println("Passed: Set password works.");
-        } else {
-            System.out.println("Failed: Set password failed.");
-        }
+        assertEquals("newPassword123", user.getPassword(), "setPassword should update the password correctly.");
     }
 
     /**
      * Tests the addRole method of the User class.
      * It verifies that a role is correctly added to the user's role list.
      */
+    @Test
+    @DisplayName("Test addRole Method")
     public void testAddRole() {
-        System.out.println("\nTest: Add Role");
         User user = new User("testUser", "password123");
         user.addRole(Role.ADMIN);
 
-        if (user.getRoles().contains(Role.ADMIN)) {
-            System.out.println("Passed: Role added successfully.");
-        } else {
-            System.out.println("Failed: Role was not added.");
-        }
+        assertFalse(user.getRoles().isEmpty(), "Roles list should not be empty after adding a role.");
+        assertTrue(user.getRoles().contains(Role.ADMIN), "Roles list should contain Role.ADMIN after addition.");
     }
 
     /**
      * Tests the removeRole method of the User class.
      * It verifies that a role is correctly removed from the user's role list.
      */
+    @Test
+    @DisplayName("Test removeRole Method")
     public void testRemoveRole() {
-        System.out.println("\nTest: Remove Role");
         User user = new User("testUser", "password123");
         user.addRole(Role.ADMIN);
         user.removeRole(Role.ADMIN);
 
-        if (!user.getRoles().contains(Role.ADMIN)) {
-            System.out.println("Passed: Role removed successfully.");
-        } else {
-            System.out.println("Failed: Role was not removed.");
-        }
+        assertFalse(user.getRoles().contains(Role.ADMIN), "Roles list should not contain Role.ADMIN after removal.");
     }
 
     /**
      * Tests the OTP expiration setting of the User class.
      * It verifies that the OTP expiration time is correctly set.
      */
+    @Test
+    @DisplayName("Test setOtpExpiration Method")
     public void testOtpExpiration() {
-        System.out.println("\nTest: OTP Expiration");
         User user = new User("testUser", "password123");
-        user.setOtpExpiration(java.time.LocalDateTime.now());
+        LocalDateTime expirationTime = LocalDateTime.now().plusMinutes(30);
+        user.setOtpExpiration(expirationTime);
 
-        if (user.getOtpExpiration() != null) {
-            System.out.println("Passed: OTP expiration set correctly.");
-        } else {
-            System.out.println("Failed: OTP expiration not set.");
-        }
+        assertNotNull(user.getOtpExpiration(), "OTP expiration should not be null after setting.");
+        assertEquals(expirationTime, user.getOtpExpiration(), "OTP expiration should match the set value.");
+    }
+
+    /**
+     * Tests the equals and hashCode methods of the User class.
+     * It verifies that two users with the same username and password are equal.
+     */
+    @Test
+    @DisplayName("Test equals and hashCode Methods")
+    public void testEqualsAndHashCode() {
+        User user1 = new User("testUser", "password123");
+        user1.addRole(Role.STUDENT);
+        user1.setOtpExpiration(LocalDateTime.now().plusMinutes(15));
+
+        User user2 = new User("testUser", "password123");
+        user2.addRole(Role.STUDENT);
+        user2.setOtpExpiration(LocalDateTime.now().plusMinutes(15));
+
+        User user3 = new User("anotherUser", "password456");
+        user3.addRole(Role.ADMIN);
+
+        assertEquals(user1, user2, "Users with the same data should be equal.");
+        assertEquals(user1.hashCode(), user2.hashCode(), "Hash codes should be equal for equal users.");
+        assertNotEquals(user1, user3, "Users with different data should not be equal.");
+    }
+
+    /**
+     * Tests the toString method of the User class.
+     * It verifies that the toString method returns the correct string representation.
+     */
+    @Test
+    @DisplayName("Test toString Method")
+    public void testToString() {
+        User user = new User("testUser", "password123");
+        user.addRole(Role.INSTRUCTOR);
+        user.setOtpExpiration(LocalDateTime.now().plusMinutes(20));
+
+        String expected = "User{username='testUser', password='password123', roles=[INSTRUCTOR], otpExpiration=" + user.getOtpExpiration() + "}";
+        String actual = user.toString();
+
+        assertEquals(expected, actual, "toString() should return the correct string representation.");
     }
 }
