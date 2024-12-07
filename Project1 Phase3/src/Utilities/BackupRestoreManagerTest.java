@@ -1,6 +1,8 @@
 package Utilities;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
@@ -67,11 +69,17 @@ public class BackupRestoreManagerTest {
      * @param manager The BackupRestoreManager instance to test.
      */
     public void testBackupByGroup(BackupRestoreManager manager) {
-        System.out.println("\nTest: Backup Specific Groups with Articles");
+        System.out.println("\nTest: Backup Specific Groups with Verification");
         try {
-            List<String> groupsToBackup = Arrays.asList("cs", "ai"); // Example group names
+            List<String> groupsToBackup = Arrays.asList("cs", "ai");
             manager.backupGroups(groupsToBackup, "backup_cs_ai_groups.bak");
-            System.out.println("Passed: Backup specific groups and their articles successfully.");
+
+            boolean fileExists = Files.exists(Paths.get("backup_cs_ai_groups.bak"));
+            if (fileExists) {
+                System.out.println("Passed: Backup file created successfully.");
+            } else {
+                System.out.println("Failed: Backup file not created.");
+            }
         } catch (IOException | SQLException e) {
             System.out.println("Failed: Backup specific groups and their articles failed.");
             e.printStackTrace();
@@ -84,12 +92,12 @@ public class BackupRestoreManagerTest {
      * @param manager The BackupRestoreManager instance to test.
      */
     public void testRestore(BackupRestoreManager manager) {
-        System.out.println("\nTest: Restore Groups and Articles from Backup");
+        System.out.println("\nTest: Restore Groups and Articles with Merge Conflict Handling");
         try {
-            manager.restoreGroups("backup_all_groups.bak", true); // Remove existing before restoring
-            System.out.println("Passed: Restore groups and articles successfully.");
+            manager.restoreGroups("backup_all_groups.bak", false); // Merge mode
+            System.out.println("Passed: Restore with merge conflicts resolved successfully.");
         } catch (IOException | SQLException | ClassNotFoundException e) {
-            System.out.println("Failed: Restore groups and articles failed.");
+            System.out.println("Failed: Restore groups and articles with merge conflicts failed.");
             e.printStackTrace();
         }
     }

@@ -3,75 +3,58 @@ package Controllers;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
+import models.*;
+import Utilities.*;
+import javafx.util.Pair;
 
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 import java.util.Optional;
 
-import Controllers.EditArticleDialog;
-import models.*;
-import Utilities.*;
-import javafx.scene.Scene;
-import javafx.scene.control.*;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.VBox;
-import javafx.util.Pair;
-import Controllers.HelpArticlePage;
-
 public class InstructorHomePage {
 
-	/**
-     * <p> Title: Instructor Home Page Controller. </p>
-     * 
-     * <p> Description: This class manages the Instructor Home Page, providing basic
-     * functionalities such as displaying a welcome message and allowing the
-     * instructor to log out. </p>
-     * 
-     * @author Naimish Maniya
-     * 
-     * @version 1.00   2024-10-09  Initial version.
-     */
-	
-	private VBox view;
+    private VBox view;
     private User user;
     private Label welcomeLabel;
-    private Button viewArticlesButton;
-    private Button manageArticlesButton;
     private Button logoutButton;
-    private Button editArticleButton;
-    private TableView<HelpArticle> articlesTableView;
-    private ObservableList<HelpArticle> articlesList;
     private HelpArticleDAO helpArticleDAO;
     private UserDAO userDAO;
-    private TableView<HelpArticle> tableView;
     private GroupDAO groupDAO;
-    private ComboBox<String> contentLevelComboBox;
-    private ComboBox<String> groupComboBox;
-    private TextField searchField;
-    private Button searchButton;
-    private ListView<String> searchResultsListView;
-    private ObservableList<String> searchResults;
-    private List<HelpArticle> currentSearchResults;
+    private ObservableList<HelpArticle> articlesList;
+    private TableView<HelpArticle> articlesTableView;
     private Button viewArticleButton;
+    private Button editArticleButton;
+    private Button addArticleButton;
+    private Button assignArticleToGroupButton;
+    private Button viewGroupArticlesButton;
+    private ObservableList<String> groupsList;
+    private ListView<String> groupsListView;
     private Button createGroupButton;
     private Button editGroupButton;
     private Button deleteGroupButton;
-    private ListView<String> groupsListView;
-    private ObservableList<String> groupsList;
-    private List<Group> currentGroups;
-    private Button backupButton;
-    private Button restoreButton;
-    private Button addStudentButton;
-    private Button deleteStudentButton;
-    private ListView<String> studentsListView;
-    private ObservableList<String> studentsList;
-    private List<User> currentStudents;
+    private HBox groupButtonsBox;
+    private ObservableList<String> groupMembersList;
+    private ListView<String> groupMembersListView;
     private Button addStudentToGroupButton;
     private Button removeStudentFromGroupButton;
-    private ListView<String> groupMembersListView;
-    private ObservableList<String> groupMembersList;
-
+    private HBox groupMemberButtonsBox;
+    private ObservableList<String> studentsList;
+    private ListView<String> studentsListView;
+    private Button addStudentButton;
+    private Button deleteStudentButton;
+    private HBox studentButtonsBox;
+    private ObservableList<String> searchResults;
+    private ListView<String> searchResultsListView;
+    private TextField searchField;
+    private ComboBox<String> contentLevelComboBox;
+    private ComboBox<String> groupComboBox;
+    private Button searchButton;
+    private Button backupButton;
+    private Button restoreButton;
 
     public InstructorHomePage(User user) {
         this.user = user;
@@ -80,36 +63,14 @@ public class InstructorHomePage {
         view.setPadding(new Insets(20));
 
         welcomeLabel = new Label("Welcome, " + user.getPreferredName() + " (Instructor)");
-        viewArticlesButton = new Button("View Help Articles");
-        viewArticlesButton.setOnAction(e -> handleViewArticles());
-
-        manageArticlesButton = new Button("Manage Help Articles");
-        manageArticlesButton.setOnAction(e -> handleManageArticles());
-
         logoutButton = new Button("Log Out");
         logoutButton.setOnAction(e -> Main.showLoginPage());
 
-        editArticleButton = new Button("Edit Article");
-        editArticleButton.setOnAction(e -> handleEditArticle());
+        TabPane tabPane = new TabPane();
 
-        view.getChildren().addAll(welcomeLabel, viewArticlesButton, manageArticlesButton, editArticleButton, logoutButton);
-
-        try {
-            helpArticleDAO = new HelpArticleDAO();
-            groupDAO = new GroupDAO();
-        } catch (SQLException e) {
-            showAlert(Alert.AlertType.ERROR, "Database Error", "Failed to load articles.");
-            return;
-        }
-        
-        try {
-            userDAO = new UserDAO();
-            userDAO = new UserDAO();
-        } catch (SQLException e) {
-            showAlert(Alert.AlertType.ERROR, "Database Error", "Failed to load articles.");
-            return;
-        }
-
+        Tab helpArticlesTab = new Tab("Help Articles");
+        helpArticlesTab.setClosable(false);
+        VBox helpArticlesBox = new VBox(10);
         articlesList = FXCollections.observableArrayList();
         articlesTableView = new TableView<>();
         articlesTableView.setItems(articlesList);
@@ -128,143 +89,246 @@ public class InstructorHomePage {
 
         articlesTableView.getColumns().addAll(idCol, titleCol, descriptionCol);
 
-        view.getChildren().add(articlesTableView);
-        
+        HBox articleButtons = new HBox(10);
+        viewArticleButton = new Button("View Article");
+        viewArticleButton.setOnAction(e -> handleViewArticle());
         editArticleButton = new Button("Edit Article");
-        editArticleButton.setOnAction(e -> {
-            HelpArticle selected = articlesTableView.getSelectionModel().getSelectedItem();
-            if (selected != null) {
-                EditArticleDialog editDialog = new EditArticleDialog(selected);
-                editDialog.showAndWait();
-                loadArticles();
-            }
-        });
-        
-        editArticleButton.setDisable(true);
+        editArticleButton.setOnAction(e -> handleEditArticle());
+        addArticleButton = new Button("Add Article");
+        addArticleButton.setOnAction(e -> handleAddArticle());
+        assignArticleToGroupButton = new Button("Assign to Group");
+        assignArticleToGroupButton.setOnAction(e -> handleAssignArticleToGroup());
+        viewGroupArticlesButton = new Button("View Group Articles");
+        viewGroupArticlesButton.setOnAction(e -> handleViewGroupArticles());
+        viewGroupArticlesButton.setDisable(true);
+        articleButtons.getChildren().addAll(viewArticleButton, editArticleButton, addArticleButton, assignArticleToGroupButton, viewGroupArticlesButton);
 
         articlesTableView.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
-            User currentUser = SessionManager.getInstance().getCurrentUser();
-            if (newSelection != null && currentUser.getRoles().contains(Role.INSTRUCTOR)) {
+            if (newSelection != null) {
                 editArticleButton.setDisable(false);
+                assignArticleToGroupButton.setDisable(false);
+                viewGroupArticlesButton.setDisable(false);
             } else {
                 editArticleButton.setDisable(true);
+                assignArticleToGroupButton.setDisable(true);
+                viewGroupArticlesButton.setDisable(true);
             }
         });
-        
-        GridPane searchPane = new GridPane();
-        searchPane.setVgap(10);
-        searchPane.setHgap(10);
 
-        contentLevelComboBox = new ComboBox<>();
-        contentLevelComboBox.getItems().addAll("all", "beginner", "intermediate", "advanced", "expert");
-        contentLevelComboBox.setValue("all");
+        helpArticlesBox.getChildren().addAll(articlesTableView, articleButtons);
+        helpArticlesTab.setContent(helpArticlesBox);
 
-        groupComboBox = new ComboBox<>();
-        try {
-            groupComboBox.getItems().add("all");
-            groupComboBox.getItems().addAll(new GroupDAO().getAllGroups().stream().map(Group::getName).toList());
-            groupComboBox.setValue("all");
-        } catch (SQLException e) {
-            showAlert(Alert.AlertType.ERROR, "Database Error", "Failed to load groups.");
-        }
+        Tab groupManagementTab = new Tab("Group Management");
+        groupManagementTab.setClosable(false);
+        VBox groupManagementBox = new VBox(10);
 
-        searchField = new TextField();
-        searchField.setPromptText("Enter search query");
+        groupsList = FXCollections.observableArrayList();
+        groupsListView = new ListView<>();
+        groupsListView.setItems(groupsList);
 
-        searchButton = new Button("Search");
-        searchButton.setOnAction(e -> handleSearch());
-
-        searchPane.add(new Label("Content Level:"), 0, 0);
-        searchPane.add(contentLevelComboBox, 1, 0);
-        searchPane.add(new Label("Group:"), 0, 1);
-        searchPane.add(groupComboBox, 1, 1);
-        searchPane.add(new Label("Search:"), 0, 2);
-        searchPane.add(searchField, 1, 2);
-        searchPane.add(searchButton, 2, 2);
-
-        view.getChildren().add(searchPane);
-
-        searchResultsListView = new ListView<>();
-        searchResults = FXCollections.observableArrayList();
-        searchResultsListView.setItems(searchResults);
-        view.getChildren().add(searchResultsListView);
-
-     // Inside the constructor after initializing searchResultsListView
-        viewArticleButton = new Button("View Article");
-        viewArticleButton.setOnAction(e -> handleViewArticle(user));
-        view.getChildren().add(viewArticleButton);
-        
+        groupButtonsBox = new HBox(10);
         createGroupButton = new Button("Create Group");
         createGroupButton.setOnAction(e -> handleCreateGroup());
-
         editGroupButton = new Button("Edit Group");
         editGroupButton.setOnAction(e -> handleEditGroup());
-
         deleteGroupButton = new Button("Delete Group");
         deleteGroupButton.setOnAction(e -> handleDeleteGroup());
+        groupButtonsBox.getChildren().addAll(createGroupButton, editGroupButton, deleteGroupButton);
 
-        groupsListView = new ListView<>();
-        groupsList = FXCollections.observableArrayList();
-        groupsListView.setItems(groupsList);
-        view.getChildren().add(groupsListView);
+        groupMembersList = FXCollections.observableArrayList();
+        groupMembersListView = new ListView<>();
+        groupMembersListView.setItems(groupMembersList);
 
-        ToolBar groupToolBar = new ToolBar(createGroupButton, editGroupButton, deleteGroupButton);
-        view.getChildren().add(groupToolBar);
-        loadGroups();
-        
-        backupButton = new Button("Backup Database");
-        backupButton.setOnAction(e -> handleBackup());
-
-        restoreButton = new Button("Restore Database");
-        restoreButton.setOnAction(e -> handleRestore());
-
-        ToolBar backupRestoreToolBar = new ToolBar(backupButton, restoreButton);
-        view.getChildren().add(backupRestoreToolBar);
-        
-     // Inside the constructor after initializing other UI components
-        addStudentButton = new Button("Add Student");
-        addStudentButton.setOnAction(e -> handleAddStudent());
-
-        deleteStudentButton = new Button("Delete Student");
-        deleteStudentButton.setOnAction(e -> handleDeleteStudent());
-
-        studentsListView = new ListView<>();
-        studentsList = FXCollections.observableArrayList();
-        studentsListView.setItems(studentsList);
-        view.getChildren().add(studentsListView);
-
-        ToolBar studentToolBar = new ToolBar(addStudentButton, deleteStudentButton);
-        view.getChildren().add(studentToolBar);
-        
-     // Inside the constructor after initializing other UI components
+        groupMemberButtonsBox = new HBox(10);
         addStudentToGroupButton = new Button("Add Student to Group");
         addStudentToGroupButton.setOnAction(e -> handleAddStudentToGroup());
-
         removeStudentFromGroupButton = new Button("Remove Student from Group");
         removeStudentFromGroupButton.setOnAction(e -> handleRemoveStudentFromGroup());
+        groupMemberButtonsBox.getChildren().addAll(addStudentToGroupButton, removeStudentFromGroupButton);
 
-        groupMembersListView = new ListView<>();
-        groupMembersList = FXCollections.observableArrayList();
-        groupMembersListView.setItems(groupMembersList);
-        view.getChildren().add(groupMembersListView);
-
-        ToolBar groupMembershipToolBar = new ToolBar(addStudentToGroupButton, removeStudentFromGroupButton);
-        view.getChildren().add(groupMembershipToolBar);
-
-        // Load group members when a group is selected
         groupsListView.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
             if (newSelection != null && newSelection.matches("^\\d+\\. .*")) {
-                int groupId = Integer.parseInt(newSelection.split("\\.")[0]);
+                long groupId = Long.parseLong(newSelection.split("\\.")[0]);
                 loadGroupMembers(groupId);
+                viewGroupArticlesButton.setDisable(false);
+            } else {
+                groupMembersList.clear();
+                viewGroupArticlesButton.setDisable(true);
             }
         });
 
+        groupManagementBox.getChildren().addAll(new Label("Groups:"), groupsListView, groupButtonsBox, new Label("Group Members:"), groupMembersListView, groupMemberButtonsBox);
+        groupManagementTab.setContent(groupManagementBox);
 
-        loadStudents(); 
+        Tab studentManagementTab = new Tab("Student Management");
+        studentManagementTab.setClosable(false);
+        VBox studentManagementBox = new VBox(10);
 
-        initializeButtons();
+        studentsList = FXCollections.observableArrayList();
+        studentsListView = new ListView<>();
+        studentsListView.setItems(studentsList);
+
+        studentButtonsBox = new HBox(10);
+        addStudentButton = new Button("Add Student");
+        addStudentButton.setOnAction(e -> handleAddStudent());
+        deleteStudentButton = new Button("Delete Student");
+        deleteStudentButton.setOnAction(e -> handleDeleteStudent());
+        studentButtonsBox.getChildren().addAll(addStudentButton, deleteStudentButton);
+
+        studentManagementBox.getChildren().addAll(new Label("Students:"), studentsListView, studentButtonsBox);
+        studentManagementTab.setContent(studentManagementBox);
+
+        Tab backupRestoreTab = new Tab("Backup/Restore");
+        backupRestoreTab.setClosable(false);
+        VBox backupRestoreBox = new VBox(10);
+
+        HBox backupRestoreButtons = new HBox(10);
+        backupButton = new Button("Backup Database");
+        backupButton.setOnAction(e -> handleBackup());
+        restoreButton = new Button("Restore Database");
+        restoreButton.setOnAction(e -> handleRestore());
+        backupRestoreButtons.getChildren().addAll(backupButton, restoreButton);
+
+        backupRestoreBox.getChildren().addAll(backupRestoreButtons);
+        backupRestoreTab.setContent(backupRestoreBox);
+
+        tabPane.getTabs().addAll(helpArticlesTab, groupManagementTab, studentManagementTab, backupRestoreTab);
+
+        view.getChildren().addAll(welcomeLabel, tabPane, logoutButton);
+
+        try {
+            helpArticleDAO = new HelpArticleDAO();
+            groupDAO = new GroupDAO();
+            userDAO = new UserDAO();
+        } catch (SQLException e) {
+            showAlert(Alert.AlertType.ERROR, "Database Error", "Failed to load data.");
+            return;
+        }
+
+        loadArticles();
+        loadGroups();
+        loadStudents();
+    }
+    
+    private void handleViewGroupArticles() {
+    	String selectedGroup = groupsListView.getSelectionModel().getSelectedItem();
+        if (selectedGroup == null || !selectedGroup.matches("^\\d+\\. .*")) {
+            showAlert(Alert.AlertType.WARNING, "No Group Selected", "Please select a group first.");
+            return;
+        }
+        long groupId = Long.parseLong(selectedGroup.split("\\.")[0]);
+        ViewGroupArticlesDialog dialog = new ViewGroupArticlesDialog(groupDAO, helpArticleDAO, groupId);
+        dialog.showAndWait();
+    }
+    
+    private void handleAssignArticleToGroup() {
+        HelpArticle selectedArticle = articlesTableView.getSelectionModel().getSelectedItem();
+        if (selectedArticle == null) {
+            showAlert(Alert.AlertType.WARNING, "No Selection", "Please select an article to assign.");
+            return;
+        }
+
+        String selectedGroup = groupsListView.getSelectionModel().getSelectedItem();
+        if (selectedGroup == null || !selectedGroup.matches("^\\d+\\. .*")) {
+            showAlert(Alert.AlertType.WARNING, "No Group Selected", "Please select a group to assign the article to.");
+            return;
+        }
+        long groupId = Long.parseLong(selectedGroup.split("\\.")[0]);
+
+        AssignArticleToGroupDialog assignDialog = new AssignArticleToGroupDialog(groupDAO, helpArticleDAO, groupId);
+        Optional<Void> result = assignDialog.showAndWait();
+        if (result.isPresent()) {
+            try {
+                helpArticleDAO.associateArticleWithGroup(selectedArticle.getId(), groupId);
+                showAlert(Alert.AlertType.INFORMATION, "Success", "Article assigned to group successfully.");
+            } catch (SQLException e) {
+                showAlert(Alert.AlertType.ERROR, "Database Error", "Failed to assign article to group.");
+            }
+        }
+    }
+    
+    private void handleViewArticle() {
+        HelpArticle selected = articlesTableView.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showAlert(Alert.AlertType.WARNING, "No Selection", "Please select an article to view.");
+            return;
+        }
+        try {
+            HelpArticle fullArticle = helpArticleDAO.getHelpArticleById(selected.getId(), user);
+            if (fullArticle != null && fullArticle.getBody() != null) {
+                ViewArticleDialog dialog = new ViewArticleDialog(fullArticle, user);
+                dialog.showAndWait();
+            } else {
+                showAlert(Alert.AlertType.ERROR, "Access Denied", "You do not have permission to view this article.");
+            }
+        } catch (SQLException e) {
+            showAlert(Alert.AlertType.ERROR, "Database Error", "Failed to retrieve article.");
+        }
+    }
+    
+    private void handleEditArticle() {
+        HelpArticle selected = articlesTableView.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showAlert(Alert.AlertType.WARNING, "No Selection", "Please select an article to edit.");
+            return;
+        }
+        EditArticleDialog editDialog = new EditArticleDialog(selected);
+        editDialog.showAndWait();
         loadArticles();
     }
+
+    private void handleAddArticle() {
+        AddArticleDialog addDialog = new AddArticleDialog();
+        Optional<HelpArticle> result = addDialog.showAndWait();
+        result.ifPresent(article -> {
+            try {
+                helpArticleDAO.addHelpArticle(article);
+                showAlert(Alert.AlertType.INFORMATION, "Success", "Article added successfully.");
+                loadArticles();
+            } catch (SQLException e) {
+                showAlert(Alert.AlertType.ERROR, "Database Error", "Failed to add article.");
+            }
+        });
+    }
+
+    private void handleBackup() {
+        TextInputDialog dialog = new TextInputDialog("backup.sql");
+        dialog.setTitle("Backup Database");
+        dialog.setHeaderText("Enter the filename for the backup:");
+        dialog.setContentText("Filename:");
+
+        Optional<String> result = dialog.showAndWait();
+        result.ifPresent(filename -> {
+            try (Statement stmt = helpArticleDAO.getConnection().createStatement()) {
+                String backupSQL = "SCRIPT TO '" + filename + "';";
+                stmt.execute(backupSQL);
+            } catch (SQLException e) {
+                showAlert(Alert.AlertType.ERROR, "Backup Failed", "Failed to backup the database.");
+            }
+        });
+    }
+
+    private void handleRestore() {
+        TextInputDialog dialog = new TextInputDialog("backup.sql");
+        dialog.setTitle("Restore Database");
+        dialog.setHeaderText("Enter the filename for the restore:");
+        dialog.setContentText("Filename:");
+
+        Optional<String> result = dialog.showAndWait();
+        result.ifPresent(filename -> {
+            try (Statement stmt = helpArticleDAO.getConnection().createStatement()) {
+                String restoreSQL = "RUNSCRIPT FROM '" + filename + "';";
+                stmt.execute(restoreSQL);
+                showAlert(Alert.AlertType.INFORMATION, "Restore Successful", "Database restored from " + filename);
+                loadGroups();
+                loadArticles();
+                loadStudents();
+            } catch (SQLException e) {
+                showAlert(Alert.AlertType.ERROR, "Restore Failed", "Failed to restore the database.");
+            }
+        });
+    }
+
     private void loadGroupMembers(long groupId) {
         try {
             List<String> members = groupDAO.getGroupMembers(groupId);
@@ -281,7 +345,7 @@ public class InstructorHomePage {
             showAlert(Alert.AlertType.WARNING, "No Group Selected", "Please select a group first.");
             return;
         }
-        int groupId = Integer.parseInt(selectedGroup.split("\\.")[0]);
+        long groupId = Long.parseLong(selectedGroup.split("\\.")[0]);
 
         TextInputDialog dialog = new TextInputDialog();
         dialog.setTitle("Add Student to Group");
@@ -296,7 +360,6 @@ public class InstructorHomePage {
             }
 
             try {
-                // Check if the user exists and is a student
                 User student = userDAO.getUserByUsername(usernameInput);
                 if (student == null || !student.getRoles().contains(Role.STUDENT)) {
                     showAlert(Alert.AlertType.ERROR, "Invalid User", "The specified user is not a student.");
@@ -318,7 +381,7 @@ public class InstructorHomePage {
             showAlert(Alert.AlertType.WARNING, "No Group Selected", "Please select a group first.");
             return;
         }
-        int groupId = Integer.parseInt(selectedGroup.split("\\.")[0]);
+        long groupId = Long.parseLong(selectedGroup.split("\\.")[0]);
 
         String selectedStudent = groupMembersListView.getSelectionModel().getSelectedItem();
         if (selectedStudent == null) {
@@ -344,10 +407,9 @@ public class InstructorHomePage {
         });
     }
 
-    
     private void loadStudents() {
         try {
-            currentStudents = userDAO.getAllStudents();
+            List<User> currentStudents = userDAO.getAllStudents();
             studentsList.clear();
             for (User student : currentStudents) {
                 String display = String.format("%s - %s %s", 
@@ -372,7 +434,6 @@ public class InstructorHomePage {
                 return;
             }
 
-            // Prompt for password
             PasswordField passwordField = new PasswordField();
             Dialog<Pair<String, String>> passwordDialog = new Dialog<>();
             passwordDialog.setTitle("Set Password");
@@ -409,8 +470,9 @@ public class InstructorHomePage {
                 }
 
                 User newStudent = new User(username, password);
+                newStudent.setRoles(FXCollections.observableArrayList(Role.STUDENT));
                 try {
-                    userDAO.addStudent(newStudent);
+                    userDAO.addUser(newStudent);
                     showAlert(Alert.AlertType.INFORMATION, "Success", "Student added successfully.");
                     loadStudents();
                 } catch (SQLException e) {
@@ -419,7 +481,7 @@ public class InstructorHomePage {
             });
         });
     }
-    
+
     private void handleDeleteStudent() {
         String selected = studentsListView.getSelectionModel().getSelectedItem();
         if (selected == null || !selected.contains(" - ")) {
@@ -436,7 +498,7 @@ public class InstructorHomePage {
         confirmationAlert.showAndWait().ifPresent(response -> {
             if (response == ButtonType.YES) {
                 try {
-                    userDAO.deleteStudent(username);
+                    userDAO.deleteUser(username);
                     showAlert(Alert.AlertType.INFORMATION, "Deleted", "Student deleted successfully.");
                     loadStudents();
                 } catch (SQLException e) {
@@ -446,49 +508,6 @@ public class InstructorHomePage {
         });
     }
 
-    
-    private void handleBackup() {
-        TextInputDialog dialog = new TextInputDialog("backup.sql");
-        dialog.setTitle("Backup Database");
-        dialog.setHeaderText("Enter the filename for the backup:");
-        dialog.setContentText("Filename:");
-
-        Optional<String> result = dialog.showAndWait();
-        result.ifPresent(filename -> {
-            try (Statement stmt = helpArticleDAO.getConnection().createStatement()) {
-                String backupSQL = "SCRIPT TO '" + filename + "';";
-                stmt.execute(backupSQL);
-                showAlert(Alert.AlertType.INFORMATION, "Backup Successful", "Database backed up to " + filename);
-            } catch (SQLException e) {
-                showAlert(Alert.AlertType.ERROR, "Backup Failed", "Failed to backup the database.");
-            }
-        });
-    }
-
-    
-    private void handleRestore() {
-        TextInputDialog dialog = new TextInputDialog("backup.sql");
-        dialog.setTitle("Restore Database");
-        dialog.setHeaderText("Enter the filename for the restore:");
-        dialog.setContentText("Filename:");
-
-        Optional<String> result = dialog.showAndWait();
-        result.ifPresent(filename -> {
-            try (Statement stmt = helpArticleDAO.getConnection().createStatement()) {
-                String restoreSQL = "RUNSCRIPT FROM '" + filename + "';";
-                stmt.execute(restoreSQL);
-                showAlert(Alert.AlertType.INFORMATION, "Restore Successful", "Database restored from " + filename);
-                loadGroups();
-                loadArticles(); // Implement loadArticles() to refresh the articles list
-                loadStudents(); // Refresh students list if necessary
-            } catch (SQLException e) {
-                showAlert(Alert.AlertType.ERROR, "Restore Failed", "Failed to restore the database.");
-            }
-        });
-    }
-
-
-    
     private void handleCreateGroup() {
         TextInputDialog dialog = new TextInputDialog();
         dialog.setTitle("Create Group");
@@ -502,7 +521,6 @@ public class InstructorHomePage {
                 return;
             }
 
-            // Prompt for special access group
             ChoiceDialog<String> accessDialog = new ChoiceDialog<>("No", "Yes", "No");
             accessDialog.setTitle("Group Access Type");
             accessDialog.setHeaderText("Is this a Special Access Group?");
@@ -521,51 +539,53 @@ public class InstructorHomePage {
             });
         });
     }
-    
+
     private void handleEditGroup() {
         String selected = groupsListView.getSelectionModel().getSelectedItem();
         if (selected == null || !selected.matches("^\\d+\\. .*")) {
             showAlert(Alert.AlertType.WARNING, "No Selection", "Please select a group to edit.");
             return;
         }
-        int groupId = Integer.parseInt(selected.split("\\.")[0]);
-        Group groupToEdit = currentGroups.stream().filter(g -> g.getId() == groupId).findFirst().orElse(null);
-        if (groupToEdit == null) {
-            showAlert(Alert.AlertType.ERROR, "Error", "Selected group does not exist.");
-            return;
-        }
-
-        // Prompt for new group name
-        TextInputDialog nameDialog = new TextInputDialog(groupToEdit.getName());
-        nameDialog.setTitle("Edit Group");
-        nameDialog.setHeaderText("Edit the name of the group:");
-        nameDialog.setContentText("Group Name:");
-
-        Optional<String> nameResult = nameDialog.showAndWait();
-        nameResult.ifPresent(newName -> {
-            if (newName.trim().isEmpty()) {
-                showAlert(Alert.AlertType.WARNING, "Input Required", "Group name cannot be empty.");
+        long groupId = Long.parseLong(selected.split("\\.")[0]);
+        try {
+            Group groupToEdit = groupDAO.getGroupById(groupId);
+            if (groupToEdit == null) {
+                showAlert(Alert.AlertType.ERROR, "Error", "Selected group does not exist.");
                 return;
             }
 
-            // Prompt for special access group
-            ChoiceDialog<String> accessDialog = new ChoiceDialog<>(groupToEdit.isSpecialAccessGroup() ? "Yes" : "No", "Yes", "No");
-            accessDialog.setTitle("Group Access Type");
-            accessDialog.setHeaderText("Is this a Special Access Group?");
-            accessDialog.setContentText("Select Yes or No:");
+            TextInputDialog nameDialog = new TextInputDialog(groupToEdit.getName());
+            nameDialog.setTitle("Edit Group");
+            nameDialog.setHeaderText("Edit the name of the group:");
+            nameDialog.setContentText("Group Name:");
 
-            Optional<String> accessResult = accessDialog.showAndWait();
-            accessResult.ifPresent(access -> {
-                boolean isSpecial = access.equalsIgnoreCase("Yes");
-                try {
-                    groupDAO.updateGroup(groupId, newName, isSpecial);
-                    showAlert(Alert.AlertType.INFORMATION, "Success", "Group updated successfully.");
-                    loadGroups();
-                } catch (SQLException e) {
-                    showAlert(Alert.AlertType.ERROR, "Database Error", "Failed to update group.");
+            Optional<String> nameResult = nameDialog.showAndWait();
+            nameResult.ifPresent(newName -> {
+                if (newName.trim().isEmpty()) {
+                    showAlert(Alert.AlertType.WARNING, "Input Required", "Group name cannot be empty.");
+                    return;
                 }
+
+                ChoiceDialog<String> accessDialog = new ChoiceDialog<>(groupToEdit.isSpecialAccessGroup() ? "Yes" : "No", "Yes", "No");
+                accessDialog.setTitle("Group Access Type");
+                accessDialog.setHeaderText("Is this a Special Access Group?");
+                accessDialog.setContentText("Select Yes or No:");
+
+                Optional<String> accessResult = accessDialog.showAndWait();
+                accessResult.ifPresent(access -> {
+                    boolean isSpecial = access.equalsIgnoreCase("Yes");
+                    try {
+                        groupDAO.updateGroup(groupId, newName, isSpecial);
+                        showAlert(Alert.AlertType.INFORMATION, "Success", "Group updated successfully.");
+                        loadGroups();
+                    } catch (SQLException e) {
+                        showAlert(Alert.AlertType.ERROR, "Database Error", "Failed to update group.");
+                    }
+                });
             });
-        });
+        } catch (SQLException e) {
+            showAlert(Alert.AlertType.ERROR, "Error", "Failed to retrieve group details.");
+        }
     }
 
     private void handleDeleteGroup() {
@@ -574,35 +594,59 @@ public class InstructorHomePage {
             showAlert(Alert.AlertType.WARNING, "No Selection", "Please select a group to delete.");
             return;
         }
-        int groupId = Integer.parseInt(selected.split("\\.")[0]);
-        Group groupToDelete = currentGroups.stream().filter(g -> g.getId() == groupId).findFirst().orElse(null);
-        if (groupToDelete == null) {
-            showAlert(Alert.AlertType.ERROR, "Error", "Selected group does not exist.");
-            return;
-        }
-
-        Alert confirmationAlert = new Alert(Alert.AlertType.CONFIRMATION, 
-            "Are you sure you want to delete the group: " + groupToDelete.getName() + "?", 
-            ButtonType.YES, ButtonType.NO);
-        confirmationAlert.setTitle("Confirm Deletion");
-        confirmationAlert.setHeaderText(null);
-        confirmationAlert.showAndWait().ifPresent(response -> {
-            if (response == ButtonType.YES) {
-                try {
-                    groupDAO.deleteGroup(groupId);
-                    showAlert(Alert.AlertType.INFORMATION, "Deleted", "Group deleted successfully.");
-                    loadGroups();
-                } catch (SQLException e) {
-                    showAlert(Alert.AlertType.ERROR, "Deletion Failed", "Failed to delete the group.");
-                }
+        long groupId = Long.parseLong(selected.split("\\.")[0]);
+        try {
+            Group groupToDelete = groupDAO.getGroupById(groupId);
+            if (groupToDelete == null) {
+                showAlert(Alert.AlertType.ERROR, "Error", "Selected group does not exist.");
+                return;
             }
-        });
+
+            Alert confirmationAlert = new Alert(Alert.AlertType.CONFIRMATION, 
+                "Are you sure you want to delete the group: " + groupToDelete.getName() + "?", 
+                ButtonType.YES, ButtonType.NO);
+            confirmationAlert.setTitle("Confirm Deletion");
+            confirmationAlert.setHeaderText(null);
+            confirmationAlert.showAndWait().ifPresent(response -> {
+                if (response == ButtonType.YES) {
+                    try {
+                        groupDAO.deleteGroup(groupId);
+                        showAlert(Alert.AlertType.INFORMATION, "Deleted", "Group deleted successfully.");
+                        loadGroups();
+                    } catch (SQLException e) {
+                        showAlert(Alert.AlertType.ERROR, "Deletion Failed", "Failed to delete the group.");
+                    }
+                }
+            });
+        } catch (SQLException e) {
+            showAlert(Alert.AlertType.ERROR, "Error", "Failed to retrieve group details.");
+        }
     }
 
-    
+    private void handleViewArticles() {
+        HelpArticlePage helpArticlePage = new HelpArticlePage();
+        Scene scene = new Scene(helpArticlePage.getView(), 800, 600);
+        Main.getStage().setScene(scene);
+    }
+
+    private void handleManageArticles() {
+        HelpArticlePage helpArticlePage = new HelpArticlePage();
+        Scene scene = new Scene(helpArticlePage.getView(), 800, 600);
+        Main.getStage().setScene(scene);
+    }
+
+
+    private void loadArticles() {
+        try {
+            articlesList.setAll(helpArticleDAO.getAllHelpArticles(user));
+        } catch (SQLException e) {
+            showAlert(Alert.AlertType.ERROR, "Database Error", "Failed to load articles.");
+        }
+    }
+
     private void loadGroups() {
         try {
-            currentGroups = groupDAO.getAllGroups();
+            List<Group> currentGroups = groupDAO.getAllGroups();
             groupsList.clear();
             for (Group group : currentGroups) {
                 String display = String.format("%d. %s (Special Access: %s)", 
@@ -613,122 +657,12 @@ public class InstructorHomePage {
             showAlert(Alert.AlertType.ERROR, "Database Error", "Failed to load groups.");
         }
     }
-    
-    private void handleSearch() {
-        String query = searchField.getText().trim();
-        String groupName = groupComboBox.getValue();
 
-        if (query.isEmpty()) {
-            showAlert(Alert.AlertType.WARNING, "Input Required", "Please enter a search query.");
-            return;
-        }
-
-        try {
-            List<HelpArticle> results = helpArticleDAO.searchHelpArticles(user, query, groupName);
-            currentSearchResults = results;
-            searchResults.clear();
-
-            searchResults.add("Active Group: " + groupName);
-            searchResults.add("Search Results:");
-
-            for (int i = 0; i < results.size(); i++) {
-                HelpArticle article = results.get(i);
-                String display = String.format("%d. %s - %s", 
-                    i + 1, article.getTitle(), article.getShortDescription());
-                searchResults.add(display);
-            }
-
-        } catch (SQLException e) {
-            showAlert(Alert.AlertType.ERROR, "Database Error", "Failed to perform search.");
-        }
-    }
-
-
-    
-    private void handleViewArticle(User user) {
-        String selected = searchResultsListView.getSelectionModel().getSelectedItem();
-        if (selected == null || !selected.matches("^\\d+\\. .*")) {
-            showAlert(Alert.AlertType.WARNING, "No Selection", "Please select an article to view.");
-            return;
-        }
-        int sequenceNumber = Integer.parseInt(selected.split("\\.")[0]) - 1;
-        if (sequenceNumber < 0 || sequenceNumber >= currentSearchResults.size()) {
-            showAlert(Alert.AlertType.ERROR, "Invalid Selection", "Invalid article selection.");
-            return;
-        }
-        HelpArticle article = currentSearchResults.get(sequenceNumber);
-        try {
-            HelpArticle fullArticle = helpArticleDAO.getHelpArticleById(article.getId(), user);
-            if (fullArticle != null && fullArticle.getBody() != null) {
-                ViewArticleDialog dialog = new ViewArticleDialog(fullArticle, user);
-                dialog.showAndWait();
-            } else {
-                showAlert(Alert.AlertType.ERROR, "Access Denied", "You do not have permission to view this article.");
-            }
-        } catch (SQLException e) {
-            showAlert(Alert.AlertType.ERROR, "Database Error", "Failed to retrieve article.");
-        }
-    }
-    
-    private void handleEditArticle() {
-        User currentUser = SessionManager.getInstance().getCurrentUser();
-        if (!currentUser.getRoles().contains(Role.INSTRUCTOR)) {
-            showAlert(Alert.AlertType.ERROR, "Access Denied", "Only instructors can edit articles.");
-            return;
-        }
-        HelpArticle selected = tableView.getSelectionModel().getSelectedItem();
-        if (selected != null) {
-            EditArticleDialog editDialog = new EditArticleDialog(selected);
-            editDialog.showAndWait();
-            loadArticles();
-        } else {
-            showAlert(Alert.AlertType.WARNING, "No Selection", "Please select an article to edit.");
-        }
-    }
-    
-    private void initializeButtons() {
-        User currentUser = SessionManager.getInstance().getCurrentUser();
-
-        editArticleButton.setDisable(true);
-
-        articlesTableView.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
-            if (newSelection != null && currentUser.getRoles().contains(Role.INSTRUCTOR)) {
-                editArticleButton.setDisable(false);
-            } else {
-                editArticleButton.setDisable(true);
-            }
-        });
-    }
-    
-    private void loadArticles() {
-        try {
-            articlesList.setAll(helpArticleDAO.getAllHelpArticles(user));
-        } catch (SQLException e) {
-            showAlert(Alert.AlertType.ERROR, "Database Error", "Failed to load articles.");
-        }
-    }
-    
     private void showAlert(Alert.AlertType type, String title, String content) {
         Alert alert = new Alert(type, content, ButtonType.OK);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.showAndWait();
-    }
-    
-    
-    private void handleViewArticles() {
-        HelpArticlePage helpArticlePage = new HelpArticlePage();
-        Scene scene = new Scene(helpArticlePage.getView(), 800, 600);
-        Main.getStage().setScene(scene);
-    }
-
-    /**
-     * Navigates to the HelpArticlePage for managing articles.
-     */
-    private void handleManageArticles() {
-        HelpArticlePage helpArticlePage = new HelpArticlePage();
-        Scene scene = new Scene(helpArticlePage.getView(), 800, 600);
-        Main.getStage().setScene(scene);
     }
 
     /**

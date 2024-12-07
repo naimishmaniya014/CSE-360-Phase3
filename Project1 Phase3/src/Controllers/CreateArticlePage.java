@@ -153,13 +153,13 @@ public class CreateArticlePage {
             showAlert(Alert.AlertType.ERROR, "Session Error", "No user is currently logged in.");
             return;
         }
-        String authorUsername = currentUser.getUsername(); // Removed author handling
+        String authorUsername = currentUser.getUsername();
 
         // Create HelpArticle object
         HelpArticle article = new HelpArticle(
-                0, header, title, shortDescription,
-                Arrays.asList(keywords.split(",")),
-                body, Arrays.asList(referenceLinks.split(","))
+            0, header, title, shortDescription,
+            Arrays.asList(keywords.split(",")),
+            body, Arrays.asList(referenceLinks.split(","))
         );
 
         try {
@@ -186,7 +186,7 @@ public class CreateArticlePage {
             clearForm();
         } catch (SQLException e) {
             messageLabel.setText("Failed to create article.");
-            e.printStackTrace(); // For debugging purposes
+            e.printStackTrace();
         }
     }
 

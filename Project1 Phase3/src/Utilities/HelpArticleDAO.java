@@ -52,13 +52,7 @@ public class HelpArticleDAO {
             throw new SQLException("Initialization failed.", e);
         }
     }
-
-    /**
-     * Adds a new help article to the database.
-     *
-     * @param article The HelpArticle object to add.
-     * @throws SQLException If there is an error executing the SQL statement.
-     */
+    
     public void addHelpArticle(HelpArticle article) throws SQLException {
         String insertSQL = "INSERT INTO HelpArticles (header, title, shortDescription, keywords, body, referenceLinks) VALUES (?, ?, ?, ?, ?, ?);";
         try (PreparedStatement pstmt = connection.prepareStatement(insertSQL, Statement.RETURN_GENERATED_KEYS)) {
@@ -70,30 +64,20 @@ public class HelpArticleDAO {
             pstmt.setString(6, String.join(",", article.getReferenceLinks()));
             pstmt.executeUpdate();
 
-            // Retrieve the generated article ID
-            try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
-                if (generatedKeys.next()) {
-                    article.setId(generatedKeys.getLong(1));
-                } else {
-                    throw new SQLException("Creating article failed, no ID obtained.");
+            try (ResultSet rs = pstmt.getGeneratedKeys()) {
+                if (rs.next()) {
+                    article.setId(rs.getLong(1));
                 }
             }
         }
     }
 
-
-    /**
-     * Retrieves all help articles from the database.
-     *
-     * @return A list of all HelpArticle objects.
-     * @throws SQLException If a database access error occurs.
-     */
     public List<HelpArticle> getAllHelpArticles(User user) throws SQLException {
         List<HelpArticle> articles = new ArrayList<>();
         String query = "SELECT DISTINCT ha.* FROM HelpArticles ha " +
                 "LEFT JOIN ArticleGroups ag ON ha.id = ag.article_id " +
                 "LEFT JOIN GroupMembers gm ON ag.group_id = gm.group_id " +
-                "WHERE gm.username = ? OR ag.group_id IS NULL"; // Articles not associated with any group are accessible to all
+                "WHERE gm.username = ? OR ag.group_id IS NULL";
 
         try (PreparedStatement pstmt = connection.prepareStatement(query)) {
             pstmt.setString(1, user.getUsername());
@@ -104,14 +88,9 @@ public class HelpArticleDAO {
                     article.setHeader(rs.getString("header"));
                     article.setTitle(rs.getString("title"));
                     article.setShortDescription(rs.getString("shortDescription"));
-                    article.setKeywords(Arrays.asList(rs.getString("keywords").split(",")));
+                    article.setKeywords(parseList(rs.getString("keywords")));
                     article.setBody(rs.getString("body"));
-                    String referenceLinksStr = rs.getString("referenceLinks");
-                    if (referenceLinksStr != null && !referenceLinksStr.isEmpty()) {
-                        article.setReferenceLinks(Arrays.asList(referenceLinksStr.split(",")));
-                    } else {
-                        article.setReferenceLinks(new ArrayList<>());
-                    }
+                    article.setReferenceLinks(parseList(rs.getString("referenceLinks")));
                     articles.add(article);
                 }
             }
@@ -119,6 +98,140 @@ public class HelpArticleDAO {
         return articles;
     }
 
+    public HelpArticle getHelpArticleById(long articleId, User user) throws SQLException {
+        String query = "SELECT ha.* FROM HelpArticles ha " +
+                "LEFT JOIN ArticleGroups ag ON ha.id = ag.article_id " +
+                "LEFT JOIN GroupMembers gm ON ag.group_id = gm.group_id " +
+                "WHERE ha.id = ? AND (gm.username = ? OR ag.group_id IS NULL)";
+
+        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+            pstmt.setLong(1, articleId);
+            pstmt.setString(2, user.getUsername());
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    HelpArticle article = new HelpArticle();
+                    article.setId(rs.getLong("id"));
+                    article.setHeader(rs.getString("header"));
+                    article.setTitle(rs.getString("title"));
+                    article.setShortDescription(rs.getString("shortDescription"));
+                    article.setKeywords(parseList(rs.getString("keywords")));
+                    article.setBody(rs.getString("body"));
+                    article.setReferenceLinks(parseList(rs.getString("referenceLinks")));
+                    return article;
+                }
+            }
+        }
+        return null;
+    }
+
+    public void associateArticleWithGroup(long articleId, long groupId) throws SQLException {
+        String insertSQL = "INSERT INTO ArticleGroups (article_id, group_id) VALUES (?, ?);";
+        try (PreparedStatement pstmt = connection.prepareStatement(insertSQL)) {
+            pstmt.setLong(1, articleId);
+            pstmt.setLong(2, groupId);
+            pstmt.executeUpdate();
+        }
+    }
+
+    public List<HelpArticle> getArticlesByGroup(long groupId) throws SQLException {
+        List<HelpArticle> articles = new ArrayList<>();
+        String query = "SELECT ha.* FROM HelpArticles ha " +
+                "JOIN ArticleGroups ag ON ha.id = ag.article_id " +
+                "WHERE ag.group_id = ?";
+
+        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+            pstmt.setLong(1, groupId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    HelpArticle article = new HelpArticle();
+                    article.setId(rs.getLong("id"));
+                    article.setHeader(rs.getString("header"));
+                    article.setTitle(rs.getString("title"));
+                    article.setShortDescription(rs.getString("shortDescription"));
+                    article.setKeywords(parseList(rs.getString("keywords")));
+                    article.setBody(rs.getString("body"));
+                    articles.add(article);
+                }
+            }
+        }
+        return articles;
+    }
+    
+    public List<HelpArticle> searchHelpArticles(User user, String query, String contentLevel, String groupName) throws SQLException {
+        List<HelpArticle> articles = new ArrayList<>();
+        StringBuilder sql = new StringBuilder("SELECT DISTINCT ha.* FROM HelpArticles ha ");
+
+        if (groupName != null && !groupName.equalsIgnoreCase("all")) {
+            sql.append("JOIN ArticleGroups ag ON ha.id = ag.article_id ");
+            sql.append("JOIN Groups g ON ag.group_id = g.id ");
+            sql.append("JOIN GroupMembers gm ON ag.group_id = gm.group_id ");
+        }
+
+        sql.append("WHERE (");
+
+        if (groupName != null && !groupName.equalsIgnoreCase("all")) {
+            sql.append("gm.username = ? ");
+        } else {
+            sql.append("ag.group_id IS NULL ");
+        }
+
+        sql.append(")");
+
+        if (contentLevel != null && !contentLevel.equalsIgnoreCase("all")) {
+            sql.append(" AND ha.contentLevel = ? ");
+        }
+
+        if (query != null && !query.isEmpty()) {
+            sql.append(" AND (ha.title LIKE ? OR ha.body LIKE ?) ");
+        }
+
+        try (PreparedStatement pstmt = connection.prepareStatement(sql.toString())) {
+            int paramIndex = 1;
+            if (groupName != null && !groupName.equalsIgnoreCase("all")) {
+                pstmt.setString(paramIndex++, user.getUsername());
+            }
+
+            if (contentLevel != null && !contentLevel.equalsIgnoreCase("all")) {
+                pstmt.setString(paramIndex++, contentLevel.toLowerCase());
+            }
+
+            if (query != null && !query.isEmpty()) {
+                String likeQuery = "%" + query + "%";
+                pstmt.setString(paramIndex++, likeQuery);
+                pstmt.setString(paramIndex++, likeQuery);
+            }
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    HelpArticle article = new HelpArticle();
+                    article.setId(rs.getLong("id"));
+                    article.setHeader(rs.getString("header"));
+                    article.setTitle(rs.getString("title"));
+                    article.setShortDescription(rs.getString("shortDescription"));
+                    article.setKeywords(parseList(rs.getString("keywords")));
+                    article.setBody(rs.getString("body"));
+                    article.setReferenceLinks(parseList(rs.getString("referenceLinks")));
+                    articles.add(article);
+                }
+            }
+        }
+
+        return articles;
+    }
+
+    private List<String> parseList(String str) {
+        if (str == null || str.trim().isEmpty()) {
+            return new ArrayList<>();
+        }
+        String[] items = str.split(",");
+        List<String> list = new ArrayList<>();
+        for (String item : items) {
+            list.add(item.trim());
+        }
+        return list;
+    }
+
+    
     /**
      * Updates an existing help article in the database.
      *
@@ -164,28 +277,6 @@ public class HelpArticleDAO {
             pstmt.executeUpdate();
         }
     }
-
-    /**
-     * Associates a HelpArticle with a Group.
-     *
-     * @param articleId The ID of the HelpArticle.
-     * @param groupId   The ID of the Group.
-     * @throws SQLException If a database access error occurs.
-     */
-    public void associateArticleWithGroup(long articleId, long groupId) throws SQLException {
-        Group group = groupDAO.getGroupById(groupId);
-        if (group != null && group.isSpecialAccessGroup()) {
-            String insertAssociationSQL = "MERGE INTO ArticleGroups (article_id, group_id) KEY (article_id, group_id) VALUES (?, ?);";
-            try (PreparedStatement pstmt = connection.prepareStatement(insertAssociationSQL)) {
-                pstmt.setLong(1, articleId);
-                pstmt.setLong(2, groupId);
-                pstmt.executeUpdate();
-            }
-        } else {
-            throw new SQLException("Cannot associate article with a non-special access group.");
-        }
-    }
-
 
     /**
      * Removes the association between a HelpArticle and a Group.
@@ -311,32 +402,6 @@ public class HelpArticleDAO {
             }
         }
         return false;
-    }
-    
-    public HelpArticle getHelpArticleById(long articleId, User user) throws SQLException {
-        String query = "SELECT ha.* FROM HelpArticles ha " +
-                       "LEFT JOIN ArticleGroups ag ON ha.id = ag.article_id " +
-                       "LEFT JOIN GroupMembers gm ON ag.group_id = gm.group_id " +
-                       "WHERE ha.id = ? AND (gm.username = ? OR ag.group_id IS NULL)";
-
-        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
-            pstmt.setLong(1, articleId);
-            pstmt.setString(2, user.getUsername());
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    HelpArticle article = new HelpArticle();
-                    article.setId(rs.getLong("id"));
-                    article.setHeader(rs.getString("header"));
-                    article.setTitle(rs.getString("title"));
-                    article.setShortDescription(rs.getString("shortDescription"));
-                    article.setKeywords(Arrays.asList(rs.getString("keywords").split(",")));
-                    article.setBody(rs.getString("body"));
-                    article.setReferenceLinks(Arrays.asList(rs.getString("referenceLinks").split(",")));
-                    return article;
-                }
-            }
-        }
-        return null;
     }
     
     public Long getGroupIdByArticleId(long articleId) throws SQLException {

@@ -32,13 +32,7 @@ public class GroupDAO {
     public GroupDAO() throws SQLException {
         connection = DatabaseManager.getInstance().getConnection();
     }
-
-    /**
-     * Adds a new group to the database.
-     *
-     * @param group The Group object to add.
-     * @throws SQLException If a database access error occurs.
-     */
+    
     public void addGroup(Group group) throws SQLException {
         String insertSQL = "INSERT INTO Groups (name, isSpecialAccessGroup) VALUES (?, ?);";
         try (PreparedStatement pstmt = connection.prepareStatement(insertSQL, Statement.RETURN_GENERATED_KEYS)) {
@@ -53,12 +47,6 @@ public class GroupDAO {
         }
     }
 
-    /**
-     * Retrieves all groups from the database.
-     *
-     * @return A list of all Group objects.
-     * @throws SQLException If a database access error occurs.
-     */
     public List<Group> getAllGroups() throws SQLException {
         List<Group> groups = new ArrayList<>();
         String selectSQL = "SELECT * FROM Groups;";
@@ -75,14 +63,6 @@ public class GroupDAO {
         return groups;
     }
 
-
-    /**
-     * Retrieves a group by its name.
-     *
-     * @param name The name of the group.
-     * @return The Group object, or null if not found.
-     * @throws SQLException If a database access error occurs.
-     */
     public Group getGroupByName(String name) throws SQLException {
         String query = "SELECT * FROM Groups WHERE name = ?;";
         try (PreparedStatement pstmt = connection.prepareStatement(query)) {
@@ -100,28 +80,33 @@ public class GroupDAO {
         return null;
     }
 
-    /**
-     * Updates an existing group in the database.
-     *
-     * @param group The Group object with updated information.
-     * @throws SQLException If a database access error occurs.
-     */
-    public void updateGroup(Group group) throws SQLException {
+    public Group getGroupById(long groupId) throws SQLException {
+        String query = "SELECT * FROM Groups WHERE id = ?;";
+        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+            pstmt.setLong(1, groupId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    Group group = new Group();
+                    group.setId(rs.getLong("id"));
+                    group.setName(rs.getString("name"));
+                    group.setSpecialAccessGroup(rs.getBoolean("isSpecialAccessGroup"));
+                    return group;
+                }
+            }
+        }
+        return null;
+    }
+
+    public void updateGroup(long groupId, String newGroupName, boolean isSpecialAccessGroup) throws SQLException {
         String updateSQL = "UPDATE Groups SET name = ?, isSpecialAccessGroup = ? WHERE id = ?;";
         try (PreparedStatement pstmt = connection.prepareStatement(updateSQL)) {
-            pstmt.setString(1, group.getName());
-            pstmt.setBoolean(2, group.isSpecialAccessGroup());
-            pstmt.setLong(3, group.getId());
+            pstmt.setString(1, newGroupName);
+            pstmt.setBoolean(2, isSpecialAccessGroup);
+            pstmt.setLong(3, groupId);
             pstmt.executeUpdate();
         }
     }
 
-    /**
-     * Deletes a group from the database.
-     *
-     * @param groupId The ID of the group to delete.
-     * @throws SQLException If a database access error occurs.
-     */
     public void deleteGroup(long groupId) throws SQLException {
         String deleteSQL = "DELETE FROM Groups WHERE id = ?;";
         try (PreparedStatement pstmt = connection.prepareStatement(deleteSQL)) {
@@ -130,18 +115,13 @@ public class GroupDAO {
         }
     }
 
-    /**
-     * Deletes all groups from the database.
-     *
-     * @throws SQLException If a database access error occurs.
-     */
     public void deleteAllGroups() throws SQLException {
         String deleteSQL = "DELETE FROM Groups;";
         try (PreparedStatement pstmt = connection.prepareStatement(deleteSQL)) {
             pstmt.executeUpdate();
         }
     }
-    
+
     public List<User> getSpecialGroupAdmins(long groupId) throws SQLException {
         List<User> admins = new ArrayList<>();
         String query = "SELECT u.* FROM Users u JOIN SpecialGroupAdmins sga ON u.username = sga.username WHERE sga.group_id = ?;";
@@ -225,7 +205,6 @@ public class GroupDAO {
 
     public void addSpecialGroupInstructorAdmin(long groupId, String username) throws SQLException {
         if (isFirstInstructorInGroup(groupId, username)) {
-            // First instructor gets admin rights automatically
             addSpecialGroupInstructorAdminInternal(groupId, username);
             addSpecialGroupInstructorViewerInternal(groupId, username);
         } else {
@@ -300,32 +279,14 @@ public class GroupDAO {
         user.setMiddleName(rs.getString("middleName"));
         user.setLastName(rs.getString("lastName"));
         user.setPreferredName(rs.getString("preferredName"));
-        // Assume roles are handled separately
         return user;
     }
-    
-    public Group getGroupById(long groupId) throws SQLException {
-        String query = "SELECT * FROM Groups WHERE id = ?;";
-        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
-            pstmt.setLong(1, groupId);
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    Group group = new Group();
-                    group.setId(rs.getLong("id"));
-                    group.setName(rs.getString("name"));
-                    group.setSpecialAccessGroup(rs.getBoolean("isSpecialAccessGroup"));
-                    return group;
-                }
-            }
-        }
-        return null;
-    }
-    
+
     public boolean isFirstInstructorInGroup(long groupId, String username) throws SQLException {
         List<User> instructors = getSpecialGroupInstructorAdmins(groupId);
         return instructors.isEmpty() && userExists(username) && getUserByUsername(username).getRoles().contains(Role.INSTRUCTOR);
     }
-    
+
     private boolean userExists(String username) throws SQLException {
         String query = "SELECT COUNT(*) FROM Users WHERE username = ?;";
         try (PreparedStatement pstmt = connection.prepareStatement(query)) {
@@ -352,15 +313,51 @@ public class GroupDAO {
         }
         return null;
     }
-    
-    
-    /**
-     * Adds a student to a specific group.
-     *
-     * @param groupId The ID of the group.
-     * @param username The username of the student.
-     * @throws SQLException If there is an error executing the SQL statement.
-     */
+
+    public List<Group> getGroupsByNames(List<String> groupNames) throws SQLException {
+        List<Group> groups = new ArrayList<>();
+        if (groupNames == null || groupNames.isEmpty()) {
+            return groups;
+        }
+        StringBuilder queryBuilder = new StringBuilder("SELECT * FROM Groups WHERE name IN (");
+        String placeholders = String.join(",", groupNames.stream().map(name -> "?").toArray(String[]::new));
+        queryBuilder.append(placeholders).append(");");
+        String query = queryBuilder.toString();
+        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+            for (int i = 0; i < groupNames.size(); i++) {
+                pstmt.setString(i + 1, groupNames.get(i));
+            }
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    Group group = new Group();
+                    group.setId(rs.getLong("id"));
+                    group.setName(rs.getString("name"));
+                    group.setSpecialAccessGroup(rs.getBoolean("isSpecialAccessGroup"));
+                    groups.add(group);
+                }
+            }
+        }
+        return groups;
+    }
+
+    public List<Group> getGroupsByInstructor(String username) throws SQLException {
+        List<Group> groups = new ArrayList<>();
+        String query = "SELECT g.* FROM Groups g JOIN GroupMembers gm ON g.id = gm.group_id WHERE gm.username = ? AND g.isSpecialAccessGroup = FALSE;";
+        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+            pstmt.setString(1, username);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    Group group = new Group();
+                    group.setId(rs.getLong("id"));
+                    group.setName(rs.getString("name"));
+                    group.setSpecialAccessGroup(rs.getBoolean("isSpecialAccessGroup"));
+                    groups.add(group);
+                }
+            }
+        }
+        return groups;
+    }
+
     public void addStudentToGroup(long groupId, String username) throws SQLException {
         String insertSQL = "INSERT INTO GroupMembers (group_id, username) VALUES (?, ?);";
         try (PreparedStatement pstmt = connection.prepareStatement(insertSQL)) {
@@ -369,14 +366,7 @@ public class GroupDAO {
             pstmt.executeUpdate();
         }
     }
-    
-    /**
-     * Removes a student from a specific group.
-     *
-     * @param groupId The ID of the group.
-     * @param username The username of the student.
-     * @throws SQLException If there is an error executing the SQL statement.
-     */
+
     public void removeStudentFromGroup(long groupId, String username) throws SQLException {
         String deleteSQL = "DELETE FROM GroupMembers WHERE group_id = ? AND username = ?;";
         try (PreparedStatement pstmt = connection.prepareStatement(deleteSQL)) {
@@ -385,14 +375,7 @@ public class GroupDAO {
             pstmt.executeUpdate();
         }
     }
-    
-    /**
-     * Retrieves all members of a specific group.
-     *
-     * @param groupId The ID of the group.
-     * @return A list of usernames belonging to the group.
-     * @throws SQLException If there is an error executing the SQL statement.
-     */
+
     public List<String> getGroupMembers(long groupId) throws SQLException {
         List<String> members = new ArrayList<>();
         String query = "SELECT username FROM GroupMembers WHERE group_id = ?;";
@@ -406,6 +389,23 @@ public class GroupDAO {
         }
         return members;
     }
+
+    
+    /**
+     * Updates an existing group in the database.
+     *
+     * @param group The Group object with updated information.
+     * @throws SQLException If a database access error occurs.
+     */
+    public void updateGroup(Group group) throws SQLException {
+        String updateSQL = "UPDATE Groups SET name = ?, isSpecialAccessGroup = ? WHERE id = ?;";
+        try (PreparedStatement pstmt = connection.prepareStatement(updateSQL)) {
+            pstmt.setString(1, group.getName());
+            pstmt.setBoolean(2, group.isSpecialAccessGroup());
+            pstmt.setLong(3, group.getId());
+            pstmt.executeUpdate();
+        }
+    }
     
     /**
      * Creates a new group.
@@ -416,28 +416,16 @@ public class GroupDAO {
      */
     public void createGroup(String groupName, boolean isSpecialAccessGroup) throws SQLException {
         String insertSQL = "INSERT INTO Groups (name, isSpecialAccessGroup) VALUES (?, ?);";
-        try (PreparedStatement pstmt = connection.prepareStatement(insertSQL)) {
+        try (PreparedStatement pstmt = connection.prepareStatement(insertSQL, Statement.RETURN_GENERATED_KEYS)) {
             pstmt.setString(1, groupName);
             pstmt.setBoolean(2, isSpecialAccessGroup);
             pstmt.executeUpdate();
+            try (ResultSet rs = pstmt.getGeneratedKeys()) {
+                if (rs.next()) {
+                    // Optionally set the ID in the Group object if needed
+                }
+            }
         }
     }
 
-    /**
-     * Updates an existing group.
-     *
-     * @param groupId The ID of the group to update.
-     * @param newGroupName The new name for the group.
-     * @param isSpecialAccessGroup Whether the group is a special access group.
-     * @throws SQLException If there is an error executing the SQL statement.
-     */
-    public void updateGroup(long groupId, String newGroupName, boolean isSpecialAccessGroup) throws SQLException {
-        String updateSQL = "UPDATE Groups SET name = ?, isSpecialAccessGroup = ? WHERE id = ?;";
-        try (PreparedStatement pstmt = connection.prepareStatement(updateSQL)) {
-            pstmt.setString(1, newGroupName);
-            pstmt.setBoolean(2, isSpecialAccessGroup);
-            pstmt.setLong(3, groupId);
-            pstmt.executeUpdate();
-        }
-    }
 }

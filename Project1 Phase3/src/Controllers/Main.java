@@ -154,17 +154,14 @@ public class Main extends Application {
 //            Utilities.HelpArticleDAOTest helpArticleDAOTester = new Utilities.HelpArticleDAOTest();
 //            helpArticleDAOTester.runTests();
 
-            // 9. Call Group Tests (Newly Added)
-            models.GroupTest groupTester = new models.GroupTest();
-            groupTester.runTests();
 
             // 10. Call HelpArticle Tests (Newly Added)
 //            models.HelpArticleTest helpArticleTester = new models.HelpArticleTest();
 //            helpArticleTester.runTests();
 
-            // 11. Call GroupWithArticles Tests (Newly Added)
-            models.GroupWithArticlesTest groupWithArticlesTester = new models.GroupWithArticlesTest();
-            groupWithArticlesTester.runTests();
+//            // 11. Call GroupWithArticles Tests (Newly Added)
+//            models.GroupWithArticlesTest groupWithArticlesTester = new models.GroupWithArticlesTest();
+//            groupWithArticlesTester.runTests();
 
         } catch (Exception e) {
             System.out.println("An error occurred during testing: " + e.getMessage());

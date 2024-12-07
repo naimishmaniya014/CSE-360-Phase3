@@ -69,4 +69,5 @@ public class HelpArticle {
     }
 
     public void setReferenceLinks(List<String> referenceLinks) { this.referenceLinks = referenceLinks; }
+	
 }

@@ -19,6 +19,8 @@ import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Arrays;
+import javafx.util.Pair;
+import java.util.Optional;
 
 public class StudentHomePage {
     private VBox view;
@@ -35,6 +37,7 @@ public class StudentHomePage {
     private HelpArticleDAO helpArticleDAO;
     private SearchRequestDAO searchRequestDAO;
     private List<HelpArticle> currentSearchResults;
+    private GroupDAO groupDAO;
 
     public StudentHomePage(User user) {
         view = new VBox(10);
@@ -63,7 +66,7 @@ public class StudentHomePage {
         searchField = new TextField();
         searchField.setPromptText("Enter search query");
 
-//        searchButton = new Button("Search");
+        searchButton = new Button("Search");
 //        searchButton.setOnAction(e -> handleSearch(user));
 
         searchPane.add(new Label("Content Level:"), 0, 0);
@@ -72,7 +75,7 @@ public class StudentHomePage {
         searchPane.add(groupComboBox, 1, 1);
         searchPane.add(new Label("Search:"), 0, 2);
         searchPane.add(searchField, 1, 2);
-//        searchPane.add(searchButton, 2, 2);
+        searchPane.add(searchButton, 2, 2);
 
         view.getChildren().add(searchPane);
 
@@ -109,6 +112,7 @@ public class StudentHomePage {
         try {
             helpArticleDAO = new HelpArticleDAO();
             searchRequestDAO = new SearchRequestDAO();
+            groupDAO = new GroupDAO();
         } catch (SQLException e) {
             showAlert(Alert.AlertType.ERROR, "Database Error", "Failed to initialize DAOs.");
         }
@@ -129,13 +133,14 @@ public class StudentHomePage {
 //        }
 //
 //        try {
-//            currentSearchResults = helpArticleDAO.searchHelpArticles(user, query, contentLevel);
+//            List<HelpArticle> articles = helpArticleDAO.searchHelpArticles(user, query, contentLevel, groupName);
+//            currentSearchResults = articles;
 //            searchResults.clear();
 //
-//            long beginner = currentSearchResults.stream().filter(a -> a.getContentLevel().equalsIgnoreCase("beginner")).count();
-//            long intermediate = currentSearchResults.stream().filter(a -> a.getContentLevel().equalsIgnoreCase("intermediate")).count();
-//            long advanced = currentSearchResults.stream().filter(a -> a.getContentLevel().equalsIgnoreCase("advanced")).count();
-//            long expert = currentSearchResults.stream().filter(a -> a.getContentLevel().equalsIgnoreCase("expert")).count();
+//            long beginner = articles.stream().filter(a -> a.getContentLevel().equalsIgnoreCase("beginner")).count();
+//            long intermediate = articles.stream().filter(a -> a.getContentLevel().equalsIgnoreCase("intermediate")).count();
+//            long advanced = articles.stream().filter(a -> a.getContentLevel().equalsIgnoreCase("advanced")).count();
+//            long expert = articles.stream().filter(a -> a.getContentLevel().equalsIgnoreCase("expert")).count();
 //
 //            searchResults.add("Active Group: " + groupName);
 //            searchResults.add("Beginner: " + beginner);
@@ -144,8 +149,8 @@ public class StudentHomePage {
 //            searchResults.add("Expert: " + expert);
 //            searchResults.add("Search Results:");
 //
-//            for (int i = 0; i < currentSearchResults.size(); i++) {
-//                HelpArticle article = currentSearchResults.get(i);
+//            for (int i = 0; i < articles.size(); i++) {
+//                HelpArticle article = articles.get(i);
 //                String display = String.format("%d. %s by %s - %s", 
 //                    i + 1, article.getTitle(), article.getAuthor(), article.getShortDescription());
 //                searchResults.add(display);
@@ -190,8 +195,6 @@ public class StudentHomePage {
         dialog.setHeaderText("Express confusion about using the tool.");
         dialog.setContentText("Message:");
         dialog.showAndWait().ifPresent(message -> {
-            // Handle generic message
-            // For simplicity, just print it or store it
             System.out.println("Generic message from " + user.getUsername() + ": " + message);
             showAlert(Alert.AlertType.INFORMATION, "Message Sent", "Your message has been sent.");
         });
@@ -203,8 +206,6 @@ public class StudentHomePage {
         dialog.setHeaderText("Specify what you need and cannot find.");
         dialog.setContentText("Message:");
         dialog.showAndWait().ifPresent(message -> {
-            // Handle specific message
-            // Store it in search requests
             try {
                 SearchRequest request = new SearchRequest(user.getUsername(), message, LocalDateTime.now());
                 searchRequestDAO.addSearchRequest(request);
